@@ -5,7 +5,7 @@
 
 This Free and Open Source research and development activity is funded by the European Commission in the context of Collective Awareness Platforms for Sustainability and Social Innovation (CAPSSI) grants nr.610349 and nr.687922.
 
-The Freecoin toolkit is Copyright (C) 2017 by the Dyne.org Foundation, Amsterdam
+The just auth lib is Copyright (C) 2017 by the Dyne.org Foundation, Amsterdam
 
 The development is lead by Aspasia Beneti <aspra@dyne.org>
 
