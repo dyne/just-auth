@@ -1,4 +1,4 @@
-# Just Auth - A simple and generic two facotr authentication lib
+# Just Auth - A simple and generic two factor authentication lib
 
 ## License
 
