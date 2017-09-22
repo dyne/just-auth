@@ -22,13 +22,14 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (ns just-auth.core
-  (:require [clojure.string :as s] 
-            [just-auth.db 
+  (:require [just-auth.db 
              [account :as account]
              [mongo :as mongo]
              [password-recovery :as pr]]
             [just-auth.email-activation :as email-activation]
-            [taoensso.timbre :as log]))
+            [taoensso.timbre :as log]
+            [schema.core :as s]
+            [just-auth.db.storage :refer [AuthStore]]))
 
 (defprotocol Authentication
   ;; About names http://www.kalzumeus.com/2010/06/17/falsehoods-programmers-believe-about-name
@@ -42,40 +43,17 @@
 
   (reset-password [this email old-password new-password]))
 
-#_(lc/defresource create-account [account-store email-activator]
-  :allowed-methods [:post]
-  :available-media-types content-types
+;; TODO extract schema
+(def HashFns
+  {:hash-fn s/Any
+   :hash-check-fn s/Any ;;TODO
+   })
 
-  :known-content-type? #(check-content-type % content-types)
+(s/defrecord EmailBasedAuthentication
+    [storage :-  AuthStore
+     hash-fns :- HashFns]
+  )
 
-  :processable? (fn [ctx]
-                  (let [{:keys [status data problems]}
-                        (fh/validate-form sign-in-page/sign-up-form
-                                          (ch/context->params ctx))]
-                    (if (= :ok status)
-                      (let [email (-> ctx :request :params :email)]
-                        (if (account/fetch account-store email)
-                          [false (fh/form-problem (conj problems
-                                                        {:keys [:email] :msg (str "An account with email " email
-                                                                                     " already exists.")}))]
-                          ctx))
-                      [false (fh/form-problem problems)])))
-
-  :handle-unprocessable-entity (fn [ctx] 
-                                 (lr/ring-response (fh/flash-form-problem
-                                                    (r/redirect (routes/absolute-path :sign-in))
-                                                    ctx)))
-  :post! (fn [ctx]
-           (let [data (-> ctx :request :params)
-                 email (get data :email)]
-             (if (account/new-account! account-store (select-keys data [:first-name :last-name :email :password]))
-               (when-not (email-activation/email-and-update! email-activator email) 
-                 (error-redirect ctx "The activation email failed to send "))
-               (log/error "Something went wrong when creating a user in the DB"))))
-
-  :post-redirect? (fn [ctx] 
-                    (assoc ctx
-                           :location (routes/absolute-path :email-confirmation))))
 
 #_(lc/defresource log-in [account-store wallet-store blockchain]
   :allowed-methods [:post]
@@ -142,6 +120,43 @@
                     (cond-> (r/redirect (routes/absolute-path :account :email (::email ctx)))
                       (::cookie-data ctx) (assoc-in [:session :cookie-data] (::cookie-data ctx))
                       true (assoc-in [:session :signed-in-email] (::email ctx))))))
+
+#_(lc/defresource create-account [account-store email-activator]
+  :allowed-methods [:post]
+  :available-media-types content-types
+
+  :known-content-type? #(check-content-type % content-types)
+
+  :processable? (fn [ctx]
+                  (let [{:keys [status data problems]}
+                        (fh/validate-form sign-in-page/sign-up-form
+                                          (ch/context->params ctx))]
+                    (if (= :ok status)
+                      (let [email (-> ctx :request :params :email)]
+                        (if (account/fetch account-store email)
+                          [false (fh/form-problem (conj problems
+                                                        {:keys [:email] :msg (str "An account with email " email
+                                                                                     " already exists.")}))]
+                          ctx))
+                      [false (fh/form-problem problems)])))
+
+  :handle-unprocessable-entity (fn [ctx] 
+                                 (lr/ring-response (fh/flash-form-problem
+                                                    (r/redirect (routes/absolute-path :sign-in))
+                                                    ctx)))
+  :post! (fn [ctx]
+           (let [data (-> ctx :request :params)
+                 email (get data :email)]
+             (if (account/new-account! account-store (select-keys data [:first-name :last-name :email :password]))
+               (when-not (email-activation/email-and-update! email-activator email) 
+                 (error-redirect ctx "The activation email failed to send "))
+               (log/error "Something went wrong when creating a user in the DB"))))
+
+  :post-redirect? (fn [ctx] 
+                    (assoc ctx
+                           :location (routes/absolute-path :email-confirmation))))
+
+
 
 #_(lc/defresource activate-account [account-store]
   :allowed-methods [:get]
