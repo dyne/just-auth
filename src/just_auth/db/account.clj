@@ -22,12 +22,11 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (ns just-auth.db.account
-  (:require [just-auth.db.mongo :as mongo]
-            [buddy.hashers :as hashers]))
+  (:require [just-auth.db.mongo :as mongo]))
 
-(defn- generate-hash [password]
-  ;; TODO genralise hash function
-  (hashers/derive password {:alg :pbkdf2+sha512}))
+;; TODO shcema
+(defn- generate-hash [password hash-fn]
+  (hash-fn password {:alg :pbkdf2+sha512}))
 
 (defn new-account!
   [account-store {:keys [first-name last-name email password flags] :as account-map}]
@@ -53,8 +52,9 @@
 (defn delete! [account-store email]
   (mongo/delete! account-store email))
 
-(defn correct-password? [account-store email candidate-password]
-  (hashers/check candidate-password
+;; TODO schema
+(defn correct-password? [account-store email candidate-password hash-check-fn]
+  (hash-check-fn candidate-password
    (:password (fetch account-store email))))
 
 (defn update-password! [account-store email password]

@@ -24,10 +24,8 @@
 (ns just-auth.db.mongo
   (:require [monger.collection :as mc]
             [monger.db :as mdb]
-            [monger.core :as mongo]))
-
-(def ^:private account-collection "accounts")
-(def ^:private password-recovery-collection "password-recovery")
+            [monger.core :as mongo]
+            [just-auth.db.storage :refer [AuthStore]]))
 
 (defn get-mongo-db-and-conn [mongo-uri]
   (let [db-and-conn (mongo/connect-via-uri mongo-uri)]
@@ -38,21 +36,6 @@
 
 (defn disconnect [db]
   (if (not (empty? db)) (mongo/disconnect db)))
-
-;; TODO duplicate from freecoin-lib
-(defprotocol AuthStore
-  (store! [e k item]
-    "Store item against the key k")
-  (update! [e k update-fn]
-    "Update the item found using key k by running the update-fn on it and storing it")
-  (fetch [e k]
-    "Retrieve item based on primary id")
-  (query [e query]
-    "Items are returned using a query map")
-  (delete! [e k]
-    "Delete item based on primary id")
-  (delete-all! [e]
-    "Delete all items from a coll"))
 
 (defrecord MongoStore [mongo-db coll]
   AuthStore
@@ -82,8 +65,12 @@
   (delete-all! [this]
     (mc/remove mongo-db coll)))
 
-(defn create-mongo-store [mongo-db coll]
-  (MongoStore. mongo-db coll))
+(defn create-mongo-store [mongo-db coll & params]
+  (let [store (MongoStore. mongo-db coll)]
+    (when-let  [ttl-seconds (:expireAfterSeconds [params])]
+      (mc/ensure-index mongo-db coll {:created-at 1}
+                       {:expireAfterSeconds ttl-seconds}))
+    store))
 
 (defrecord MemoryStore [data]
   AuthStore
@@ -112,18 +99,5 @@
   "Create a memory store"
   ([] (create-memory-store {}))
   ([data]
+   ;; TODO: implement ttl and aggregation
    (MemoryStore. (atom data))))
-
-(defn create-account-store [db]
-  (create-mongo-store db account-collection))
-
-(defn create-password-recovery-store [db ttl-password-recovery]
-  (let [store (create-mongo-store db password-recovery-collection)]
-    (mc/ensure-index db password-recovery-collection {:created-at 1}
-                     {:expireAfterSeconds ttl-password-recovery})
-    store))
-
-(defn all-collection-names [db]
-  (mdb/get-collection-names db))
-
-
