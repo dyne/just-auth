@@ -39,8 +39,9 @@
              ;; prevent JVM exceptions without stack trace
              ]
 
-  :profiles {:dev [:dev-common :dev-local]
-             :dev-common {:dependencies [[midje "1.8.3"]]
-                          :repl-options {:init-ns just-auth.core}
-                          :plugins [[lein-midje "3.1.3"]]}}
+  :profiles {:dev {:dependencies [[midje "1.8.3"]]
+                   :repl-options {:init-ns just-auth.core}
+                   :plugins [[lein-midje "3.1.3"]]}}
+
+  ;; TODO: do we need this?
   :plugins [[lein-environ "1.0.0"]])
