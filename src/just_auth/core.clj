@@ -27,7 +27,7 @@
              [password-recovery :as pr]
              [storage :refer [AuthStore]]]
             [just-auth
-             [email-activation :as email-activation]
+             [messaging :as m :refer [Email]]
              [schema :refer [HashFns]]]
             [taoensso.timbre :as log]
             [schema.core :as s]))
@@ -44,76 +44,40 @@
 
   (reset-password [this email old-password new-password]))
 
+;; TODO: We could use something like https://github.com/adambard/failjure for error handling
 (s/defrecord EmailBasedAuthentication
-    [storage :-  AuthStore
-     hash-fns :- HashFns])
+    [account-store :-  AuthStore
+     account-activator :- Email
+     hash-fns :- HashFns
+     activation-link :- s/Str ;; TODO: URI?
+     ]
+  Authentication
+  (sign-up [this name email password & other-names]
+    (if (account/fetch account-store email)
+      {:error :already-exists}
+      (do (account/new-account! (cond-> {:name name
+                                         :email email
+                                         :password password}
+                                  other-names (assoc :other-names other-names)))
+          (when-not (m/email-and-update! account-activator email activation-link)
+            {:error :email}))))
+  
+  (sign-in [this email password]
+    (if-let [account (account/fetch account-store email)]
+      (if (:activated account)
+        (if (account/correct-password? account-store email password (:hash-check-fn hash-fns))
+          {:email email
+           :name (:name account)
+           :other-names (:other-names account)}
+          ;; TODO: send email?
+          {:error :wrong-password})
+        {:error :account-inactive})
+      {:error :not-found}))
+
+  )
 
 
-#_(lc/defresource log-in [account-store wallet-store blockchain]
-  :allowed-methods [:post]
-  :available-media-types ["text/html"]
 
-  :authorized? (fn [ctx]
-                 (let [{:keys [status data problems]}
-                       (fh/validate-form sign-in-page/sign-in-form
-                                         (ch/context->params ctx))]
-                   (if (= :ok status)
-                     (let [email (-> ctx :request :params :sign-in-email)]
-                       (if-let [account (account/fetch account-store email)]
-                         (if (:activated account)
-                           (if (account/correct-password? account-store email (-> ctx :request :params :sign-in-password))
-                             {:email email
-                              :first-name (:first-name account)
-                              :last-name (:last-name account)}
-                             [false  (fh/form-problem (conj problems
-                                                            {:keys [:sign-in-password] :msg (str "Wrong password for account " email)}))])
-                           [false  (fh/form-problem (conj problems
-                                                          {:keys [:sign-in-email] :msg (str "The account for " email
-                                                                                               " is not yet active.")}))])
-                         [false (fh/form-problem (conj problems
-                                                        {:keys [:sign-in-email] :msg "Account with for this email does not exist"}))]))
-                     (do 
-                       [false (fh/form-problem problems)]))))
-
-  :handle-unauthorized (fn [ctx]
-                         (lr/ring-response (fh/flash-form-problem
-                                            (r/redirect (routes/absolute-path :sign-in-form))
-                                            ctx)))
-
-  :post! (fn [ctx]
-           ;; the wallet exists already
-           (let [email (:email ctx)
-                 name (str (:first-name ctx) " " (:last-name ctx))]
-             (if-let [wallet (wallet/fetch wallet-store email)]
-               (do
-                 (log/trace "The wallet for email " email " already exists")
-                 {::email (:email wallet)})
-               
-               ;; a new wallet has to be made
-               (when-let [{:keys [wallet apikey]}
-                          (wallet/new-empty-wallet!
-                              wallet-store
-                            blockchain 
-                            name email)]
-
-                 ;; TODO: distribute other shares to organization and auditor
-                 ;; see in freecoin.db.wallet
-                 ;; {:wallet (mongo/store! wallet-store :uid wallet)
-                 ;;  :apikey       (secret->apikey              account-secret)
-                 ;;  :participant  (secret->participant-shares  account-secret)
-                 ;;  :organization (secret->organization-shares account-secret)
-                 ;;  :auditor      (secret->auditor-shares      account-secret)
-                 ;;  }))
-
-                 ;; saved in context
-                 {::email (:email wallet)
-                  ::cookie-data apikey}))))
-
-  :handle-created (fn [ctx]
-                   (lr/ring-response
-                    (cond-> (r/redirect (routes/absolute-path :account :email (::email ctx)))
-                      (::cookie-data ctx) (assoc-in [:session :cookie-data] (::cookie-data ctx))
-                      true (assoc-in [:session :signed-in-email] (::email ctx))))))
 
 #_(lc/defresource create-account [account-store email-activator]
   :allowed-methods [:post]

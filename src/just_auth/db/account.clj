@@ -29,11 +29,13 @@
   (hash-fn password {:alg :pbkdf2+sha512}))
 
 (defn new-account!
-  [account-store {:keys [first-name last-name email password flags] :as account-map}]
+  [account-store
+   {:keys [name email password flags other-names] :as account-map}
+   hash-fn]
   (storage/store! account-store :email (-> account-map
                                          (assoc :activated false)
                                          (assoc :flags (or flags []))
-                                         (update :password #(generate-hash %)))))
+                                         (update :password #(generate-hash % hash-fn)))))
 
 (defn activate! [account-store email]
   (storage/update! account-store email #(assoc % :activated true)))
@@ -46,8 +48,8 @@
   (first (storage/query account-store {:activation-id activation-id})))
 
 ;; TODO activation-link
-(defn update-activation-id! [account-store email activation-link]
-  (storage/update! account-store email #(assoc % :activation-id activation-link)))
+(defn update-activation-link! [account-store email activation-link]
+  (storage/update! account-store email #(assoc % :activation-link activation-link)))
 
 (defn delete! [account-store email]
   (storage/delete! account-store email))

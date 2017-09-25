@@ -21,7 +21,7 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(ns just-auth.email-activation
+(ns just-auth.messaging
   (:require [postal.core :as postal]
             [just-auth.db
              [account :as account]
@@ -30,73 +30,65 @@
             [taoensso.timbre :as log]))
 
 (defn postal-basic-conf [conf]
-  {:host (:freecoin-email-server conf)
-   :user (:freecoin-email-user conf)
-   :pass (:freecoin-email-pass conf)
+  {:host (:email-server conf)
+   :user (:email-user conf)
+   :pass (:email-pass conf)
    :ssl true})
 
 (defprotocol Email
-  "A generic function that sends an email"
-  (email-and-update! [this email activation-link]))
+  "A generic function that sends an email and updates db fields"
+  (email-and-update! [this email link]))
 
-(defrecord ActivationEmail [conf account-store]
+(defn- send-email [conf email subject body]
+  (postal/send-message 
+   (postal-basic-conf conf)
+   {:from (:email-address conf)
+    :to [email]
+    :subject subject
+    :body body}))
+
+(defrecord AccountActivator [conf account-store]
   Email
   (email-and-update! [_ email activation-link]
-    (let [email-response       (if (account/update-activation-id! account-store email activation-link)
-                                 (postal/send-message 
-                                  (postal-basic-conf conf)
-                                  {:from (:freecoin-email-address conf)
-                                   :to [email]
-                                   :subject "Please activate your freecoin account"
-                                   :body (str "Please click on the link below to activate your account
-
-" activation-link)})
-                                 false)]
+    (let [email-response (if (account/update-activation-link! account-store email activation-link)
+                           (send-email conf email
+                                       "Please activate your freecoin account"
+                                       (str "Please click on the link below to activate your account " activation-link))
+                           false)]
       (if (= :SUCCESS (:error email-response))
         email-response
         false))))
 
-(defrecord PasswordRecoveryEmail [conf password-recovery-store]
+(defrecord PasswordRecoverer [conf password-recovery-store]
   Email
   (email-and-update! [_ email password-recovery-link]
     (let [email-response       (if (password-recovery/new-entry! password-recovery-store email password-recovery-link)
-                                 (postal/send-message 
-                                  (postal-basic-conf conf)
-                                  {:from (:freecoin-email-address conf)
-                                   :to [email]
-                                   :subject "Freecoin password recovery"
-                                   :body (str "Password recovery was requested for participant " email ".
-If you are the participant and want to reset your password click the link below
-
-"
-                                              password-recovery-link
-"
-
-The link will expire soon so be fast!")})
+                                 (send-email conf email
+                                             ;; TODO generalise
+                                             "Freecoin password recovery"
+                                             (str "Password recovery was requested for participant " email ". If you are the participant and want to reset your password click the link below " password-recovery-link " The link will expire soon so be fast!"))
                                  false)]
       (if (= :SUCCESS (:error email-response))
         email-response
         false))))
+
+(defn- update-emails [emails link-map email]
+  (swap! emails conj
+         (merge link-map {:email email
+                          ;; the SUCCESS is needed to imitate poster responses
+                          :error :SUCCESS})))
 
 (defrecord StubActivationEmail [emails account-store]
   Email
   (email-and-update! [_ email activation-link]
-    ;; the SUCCESS is needed to imitate poster responses
-    (swap! emails conj
-           {:email email
-            :activation-url activation-link
-            :error :SUCCESS})
-    (account/update-activation-id! account-store email activation-link) 
+    (update-emails emails {:activation-link activation-link})
+    (account/update-activation-link! account-store email activation-link) 
     (first @emails)))
 
 (defrecord StubPasswordRecoveryEmail [emails password-recovery-store]
   Email
   (email-and-update! [_ email password-recovery-link]
-    ;; the SUCCESS is needed to imitate poster responses
-    (swap! emails conj
-           {:email email
-            :password-recovery-url password-recovery-link
-            :error :SUCCESS})
+    (update-emails emails {:password-recovery-link password-recovery-link} email)
     (password-recovery/new-entry! password-recovery-store
                                   email password-recovery-link)
     (first @emails)))
