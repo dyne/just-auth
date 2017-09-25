@@ -55,10 +55,12 @@
   (sign-up [this name email password & other-names]
     (if (account/fetch account-store email)
       {:error :already-exists}
-      (do (account/new-account! (cond-> {:name name
+      (do (account/new-account! account-store
+                                (cond-> {:name name
                                          :email email
                                          :password password}
-                                  other-names (assoc :other-names other-names)))
+                                  other-names (assoc :other-names other-names))
+                                hash-fns)
           (when-not (m/email-and-update! account-activator email activation-link)
             {:error :email}))))
   
