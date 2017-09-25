@@ -24,12 +24,13 @@
 (ns just-auth.core
   (:require [just-auth.db 
              [account :as account]
-             [mongo :as mongo]
-             [password-recovery :as pr]]
-            [just-auth.email-activation :as email-activation]
+             [password-recovery :as pr]
+             [storage :refer [AuthStore]]]
+            [just-auth
+             [email-activation :as email-activation]
+             [schema :refer [HashFns]]]
             [taoensso.timbre :as log]
-            [schema.core :as s]
-            [just-auth.db.storage :refer [AuthStore]]))
+            [schema.core :as s]))
 
 (defprotocol Authentication
   ;; About names http://www.kalzumeus.com/2010/06/17/falsehoods-programmers-believe-about-name
@@ -43,16 +44,9 @@
 
   (reset-password [this email old-password new-password]))
 
-;; TODO extract schema
-(def HashFns
-  {:hash-fn s/Any
-   :hash-check-fn s/Any ;;TODO
-   })
-
 (s/defrecord EmailBasedAuthentication
     [storage :-  AuthStore
-     hash-fns :- HashFns]
-  )
+     hash-fns :- HashFns])
 
 
 #_(lc/defresource log-in [account-store wallet-store blockchain]

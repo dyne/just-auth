@@ -25,7 +25,7 @@
   (:require [monger.collection :as mc]
             [monger.db :as mdb]
             [monger.core :as mongo]
-            [just-auth.db.storage :refer [AuthStore]]))
+            [just-auth.db.storage :as storage :refer [AuthStore]]))
 
 (defn get-mongo-db-and-conn [mongo-uri]
   (let [db-and-conn (mongo/connect-via-uri mongo-uri)]
@@ -72,32 +72,11 @@
                        {:expireAfterSeconds ttl-seconds}))
     store))
 
-(defrecord MemoryStore [data]
-  AuthStore
-  (store! [this k item]
-    (do (swap! data assoc (k item) item)
-        item))
+(defn create-mongo-stores
+  [db store-names & params]
+  (zipmap
+   (map #(keyword %) store-names)
+   (map #(create-mongo-store db % params) store-names)))
 
-  (update! [this k update-fn]
-    (when-let [item (@data k)]
-      (let [updated-item (update-fn item)]
-        (swap! data assoc k updated-item)
-        updated-item)))
-
-  (fetch [this k] (@data k))
-
-  (query [this query]
-    (filter #(= query (select-keys % (keys query))) (vals @data)))
-
-  (delete! [this k]
-    (swap! data dissoc k))
-
-  (delete-all! [this]
-    (reset! data {})))
-
-(defn create-memory-store
-  "Create a memory store"
-  ([] (create-memory-store {}))
-  ([data]
-   ;; TODO: implement ttl and aggregation
-   (MemoryStore. (atom data))))
+(defn empty-db-stores! [stores-m]
+  (map #(storage/delete-all! (% stores-m)) stores-m))

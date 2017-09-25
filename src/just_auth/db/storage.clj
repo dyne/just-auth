@@ -21,8 +21,7 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(ns just-auth.db.storage
-  (:require [just-auth.db.mongo :as m]))
+(ns just-auth.db.storage)
 
 ;; TODO duplicate from freecoin-lib
 (defprotocol AuthStore
@@ -37,18 +36,39 @@
   (delete! [e k]
     "Delete item based on primary id")
   (delete-all! [e]
-    "Delete all items from a coll"))
+    "Delete all items from a coll")) 
 
-(defn create-mongo-stores
-  [db store-names & params]
-  (zipmap
-   (map #(keyword %) store-names)
-   (map #(m/create-mongo-store db % params) store-names))) 
+(defrecord MemoryStore [data]
+  AuthStore
+  (store! [this k item]
+    (do (swap! data assoc (k item) item)
+        item))
+
+  (update! [this k update-fn]
+    (when-let [item (@data k)]
+      (let [updated-item (update-fn item)]
+        (swap! data assoc k updated-item)
+        updated-item)))
+
+  (fetch [this k] (@data k))
+
+  (query [this query]
+    (filter #(= query (select-keys % (keys query))) (vals @data)))
+
+  (delete! [this k]
+    (swap! data dissoc k))
+
+  (delete-all! [this]
+    (reset! data {})))
+
+(defn create-memory-store
+  "Create a memory store"
+  ([] (create-memory-store {}))
+  ([data]
+   ;; TODO: implement ttl and aggregation
+   (MemoryStore. (atom data))))
 
 (defn create-in-memory-stores [store-names]
   (zipmap
    (map #(keyword %) store-names)
-   (m/create-memory-store)))
-
-(defn empty-db-stores! [stores-m]
-  (map #(m/delete-all! (% stores-m)) stores-m))
+   (create-memory-store)))
