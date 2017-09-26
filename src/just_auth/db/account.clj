@@ -44,11 +44,11 @@
   (some-> (storage/fetch account-store email)
           (update :flags (fn [flags] (map #(keyword %) flags)))))
 
-(defn fetch-by-activation-link [account-store activation-link]
-  (first (storage/query account-store {:activation-link activation-link})))
+(defn fetch-by-activation-token [account-store activation-token]
+  (first (storage/query account-store {:activation-token activation-token})))
 
-(defn update-activation-link! [account-store email activation-link]
-  (storage/update! account-store email #(assoc % :activation-link activation-link)))
+(defn update-activation-token! [account-store email activation-token]
+  (storage/update! account-store email #(assoc % :activation-token activation-token)))
 
 (defn delete! [account-store email]
   (storage/delete! account-store email))

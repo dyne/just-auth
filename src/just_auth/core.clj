@@ -35,22 +35,20 @@
 
 (defprotocol Authentication
   ;; About names http://www.kalzumeus.com/2010/06/17/falsehoods-programmers-believe-about-name
-  (sign-up [this name email password activation-uri & other-names])
+  (sign-up [this name email password second-step-conf & other-names])
 
   (sign-in [this email password])
 
   ;; TODO: maybe add password?
-  (activate-account [this email activation-link])
+  (activate-account [this email second-step-conf])
 
-  ;; TODO - shouldnt be email but...
-  (send-activation-message [this email uri])
+  (send-activation-message [this email second-step-conf])
 
-  (send-password-reset-message [this email uri])
+  (send-password-reset-message [this email second-step-conf])
 
   (de-activate-account [this email password])
 
-  ;; TODO:; not URI as it can be an sms
-  (reset-password [this email old-password new-password password-reset-link]))
+  (reset-password [this email old-password new-password second-step-conf]))
 
 ;; TODO: We could use something like https://github.com/adambard/failjure for error handling
 (s/defrecord EmailBasedAuthentication
@@ -61,7 +59,7 @@
      hash-fns :- HashFns]
 
   Authentication
-  (send-activation-message [_ email activation-uri]
+  (send-activation-message [_ email {:keys [activation-uri]}]
     (let [account (account/fetch account-store email)]
       (if account
         (if (:activated account)
@@ -74,7 +72,7 @@
         ;; TODO: send an email to that email
         {:error :not-found})))
 
-  (send-password-reset-message [_ email reset-uri]
+  (send-password-reset-message [_ email {:keys [reset-uri]}]
     (let [account (account/fetch account-store email)]
       (if account
         (if (pr/fetch password-recovery-store email)
@@ -87,7 +85,7 @@
         ;; TODO: send an email to that email?
         {:error :not-found})))
   
-  (sign-up [this name email password activation-uri & other-names] 
+  (sign-up [this name email password {:keys [activation-uri]} & other-names] 
     (if (account/fetch account-store email)
       {:error :already-exists}
       (do (account/new-account! account-store
@@ -110,8 +108,8 @@
         {:error :account-inactive})
       {:error :not-found}))
 
-  (activate-account [_ email activation-link]
-    (let [account (account/fetch-by-activation-link account-store activation-link)]
+  (activate-account [_ email {:keys [activation-link]}]
+    (let [account (account/fetch-by-activation-token account-store activation-link)]
       (if account
         (if (= (:email account) email)
           (account/activate! account-store email)
@@ -122,8 +120,8 @@
     ;; TODO
     )
 
-  (reset-password [_ email old-password new-password password-reset-link]
-    (if (= (pr/fetch-by-password-recovery-id password-recovery-store password-reset-link))
+  (reset-password [_ email old-password new-password {:keys [password-reset-link]}]
+    (if (= (pr/fetch-by-password-recovery-token password-recovery-store password-reset-link))
       (if (account/correct-password? account-store email old-password (:hash-check-fn hash-fns))
         (account/update-password! account-store email new-password (:hash-fn hash-fns))
         {:error :wrong-password})

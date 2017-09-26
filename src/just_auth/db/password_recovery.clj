@@ -27,13 +27,13 @@
             [taoensso.timbre :as log]))
 
 (defn new-entry!
-  [password-recovery-store email recovery-id]
+  [password-recovery-store email recovery-token]
   (storage/store! password-recovery-store :email {:email email
                                                 :created-at (java.util.Date.)
-                                                :recovery-id recovery-id}))
+                                                :recovery-token recovery-token}))
 
-(defn fetch-by-password-recovery-id [password-recovery-store password-recovery-id]
-  (first (storage/query password-recovery-store {:recovery-id password-recovery-id})))
+(defn fetch-by-password-recovery-token [password-recovery-store recovery-token]
+  (first (storage/query password-recovery-store {:recovery-link recovery-token})))
 
 (defn fetch [password-recovery-store email]
   (some-> (storage/fetch password-recovery-store email)))
