@@ -52,17 +52,18 @@
      activation-link :- s/Str ;; TODO: URI?
      ]
   Authentication
-  (sign-up [this name email password & other-names]
+  (sign-up [this name email password & other-names] 
     (if (account/fetch account-store email)
       {:error :already-exists}
-      (do (account/new-account! account-store
-                                (cond-> {:name name
-                                         :email email
-                                         :password password}
-                                  other-names (assoc :other-names other-names))
-                                hash-fns)
-          (when-not (m/email-and-update! account-activator email activation-link)
-            {:error :email}))))
+      (let [new-account (account/new-account! account-store
+                                              (cond-> {:name name
+                                                       :email email
+                                                       :password password}
+                                                other-names (assoc :other-names other-names))
+                                              hash-fns)]
+        (if-not (m/email-and-update! account-activator email activation-link)
+          {:error :email}
+          new-account))))
   
   (sign-in [this email password]
     (if-let [account (account/fetch account-store email)]
