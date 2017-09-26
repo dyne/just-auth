@@ -65,8 +65,7 @@
   (email-and-update! [_ email password-recovery-link]
     (let [email-response       (if (password-recovery/new-entry! password-recovery-store email password-recovery-link)
                                  (send-email conf email
-                                             ;; TODO generalise
-                                             "Freecoin password recovery"
+                                             "Password recovery"
                                              (str "Password recovery was requested for participant " email ". If you are the participant and want to reset your password click the link below " password-recovery-link " The link will expire soon so be fast!"))
                                  false)]
       (if (= :SUCCESS (:error email-response))

@@ -43,17 +43,21 @@
   (activate-account [this email activation-link])
 
   ;; TODO - shouldnt be email but...
-  (send-activation-message [this email activation-uri])
+  (send-activation-message [this email uri])
+
+  (send-password-reset-message [this email uri])
 
   (de-activate-account [this email password])
 
   ;; TODO:; not URI as it can be an sms
-  (reset-password [this email old-password new-password]))
+  (reset-password [this email old-password new-password password-reset-link]))
 
 ;; TODO: We could use something like https://github.com/adambard/failjure for error handling
 (s/defrecord EmailBasedAuthentication
     [account-store :-  AuthStore
+     password-recovery-store :- AuthStore
      account-activator :- Email
+     password-recoverer :- Email
      hash-fns :- HashFns]
 
   Authentication
@@ -68,6 +72,19 @@
               {:error :email}
               account)))
         ;; TODO: send an email to that email
+        {:error :not-found})))
+
+  (send-password-reset-message [_ email reset-uri]
+    (let [account (account/fetch account-store email)]
+      (if account
+        (if (pr/fetch password-recovery-store email)
+          {:error :already-sent}
+          (let [password-reset-id (fxc.core/generate 32)
+                password-reset-link (str reset-uri "/" password-reset-id)]
+            (if-not (m/email-and-update! password-recoverer email password-reset-link)
+              {:error :email}
+              account)))
+        ;; TODO: send an email to that email?
         {:error :not-found})))
   
   (sign-up [this name email password activation-uri & other-names] 
@@ -105,73 +122,11 @@
     ;; TODO
     )
 
-  (reset-password [_ email old-password new-password]
-    (if (account/correct-password? account-store email old-password (:hash-check-fn hash-fns))
-      (account/update-password! account-store email new-password (:hash-fn hash-fns))
-      {:error :wrong-password})))
-
-#_(lc/defresource send-password-recovery-email [account-store password-recovery-store password-recoverer]
-  :allowed-methods [:post]
-  :available-media-types content-types
-  :known-content-type? #(check-content-type % content-types)
-  :processable? (fn [ctx]
-                  (let [{:keys [status data problems]}
-                        (fh/validate-form sign-in-page/password-recovery-form
-                                          (ch/context->params ctx))]
-                    (if (= :ok status)
-                      (let [email (-> ctx :request :params :email-address)]
-                        (if-not (account/fetch account-store email)
-                          ;; TODO: It would be safer if we do not notify that the email doesnt exist but send an email anyway saying that someone attempted to change the password.
-                          [false (fh/form-problem (conj problems
-                                                        {:keys [:email] :msg (str "The email " email " is not registered yet. Please sign up first")}))]
-                          (if (pr/fetch password-recovery-store email)
-                            [false (fh/form-problem (conj problems
-                                                          {:keys [:email] :msg (str "A recovery email for " email " has already been sent.")}))]
-                            ctx)))
-                      [false (fh/form-problem problems)])))
-
-  :handle-unprocessable-entity (fn [ctx] 
-                                 (lr/ring-response (fh/flash-form-problem
-                                                    (r/redirect (routes/absolute-path :sign-in))
-                                                    ctx)))
-  :post! (fn [ctx]
-           (let [email (get-in ctx [:request :params :email-address])]
-             (when-not (email-activation/email-and-update! password-recoverer email)
-               (error-redirect ctx "The password recovery email failed to send")
-               (log/error "The password recovery email failed to send"))))
-
-  :post-redirect? (fn [ctx] 
-                    (assoc ctx
-                           ;; TODO check text - check 502 getwaway
-                           :location (routes/absolute-path :email-confirmation))))
-
-#_(lc/defresource reset-password [account-store password-recovery-store] 
-  :allowed-methods [:post]
-  :available-media-types content-types
-  :processable? (fn [ctx]
-                  (let [{:keys [password-recovery-id email]} (get-in ctx [:request :params])
-                        {:keys [status data problems]}
-                        (fh/validate-form (reset-password-page/reset-password-form email password-recovery-id)
-                                          (ch/context->params ctx))]
-                    (if-not (= :ok status)
-                      [false (fh/form-problem problems)]
-                      ctx)))
-
-  :handle-unprocessable-entity (fn [ctx] 
-                                 (let [{:keys [password-recovery-id email]} (get-in ctx [:request :params])]
-                                   (lr/ring-response (fh/flash-form-problem
-                                                      (r/redirect (routes/absolute-path :reset-password :email email :password-recovery-id password-recovery-id))
-                                                      ctx))))
-  :post! (fn [ctx]
-           (let [data (-> ctx :request :params)
-                 {:keys [new-password email]} data]
-             ;; upadte with a new hashed password
-             (account/update-password! account-store email new-password)
-             ;; remove the password recovery data
-             (pr/remove! password-recovery-store email)))
-
-  :post-redirect? (fn [ctx] 
-                    (assoc ctx
-                           :location (routes/absolute-path :password-changed))))
+  (reset-password [_ email old-password new-password password-reset-link]
+    (if (= (pr/fetch-by-password-recovery-id password-recovery-store password-reset-link))
+      (if (account/correct-password? account-store email old-password (:hash-check-fn hash-fns))
+        (account/update-password! account-store email new-password (:hash-fn hash-fns))
+        {:error :wrong-password})
+      {:error :not-found})))
 
 
