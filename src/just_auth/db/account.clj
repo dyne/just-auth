@@ -44,10 +44,9 @@
   (some-> (storage/fetch account-store email)
           (update :flags (fn [flags] (map #(keyword %) flags)))))
 
-(defn fetch-by-activation-id [account-store activation-id]
-  (first (storage/query account-store {:activation-id activation-id})))
+(defn fetch-by-activation-link [account-store activation-link]
+  (first (storage/query account-store {:activation-link activation-link})))
 
-;; TODO activation-link
 (defn update-activation-link! [account-store email activation-link]
   (storage/update! account-store email #(assoc % :activation-link activation-link)))
 
@@ -59,8 +58,8 @@
   (hash-check-fn candidate-password
    (:password (fetch account-store email))))
 
-(defn update-password! [account-store email password]
-  (storage/update! account-store email #(assoc % :password (generate-hash password))))
+(defn update-password! [account-store email password hash-fn]
+  (storage/update! account-store email #(assoc % :password (generate-hash password hash-fn))))
 
 (defn add-flag! [account-store email flag]
   (storage/update! account-store email (fn [account] (update account :flags #(conj % flag)))))

@@ -35,6 +35,7 @@
    :pass (:email-pass conf)
    :ssl true})
 
+;; TODO: does it make sense to split this into two protocols? One for messaging and one for d updates?
 (defprotocol Email
   "A generic function that sends an email and updates db fields"
   (email-and-update! [this email link]))

@@ -30,42 +30,58 @@
              [messaging :as m :refer [Email]]
              [schema :refer [HashFns]]]
             [taoensso.timbre :as log]
-            [schema.core :as s]))
+            [schema.core :as s]
+            [fxc.core :as fxc]))
 
 (defprotocol Authentication
   ;; About names http://www.kalzumeus.com/2010/06/17/falsehoods-programmers-believe-about-name
-  (sign-up [this name email password & other-names])
+  (sign-up [this name email password activation-uri & other-names])
 
   (sign-in [this email password])
 
-  (activate-account [this email activation-id password])
+  ;; TODO: maybe add password?
+  (activate-account [this email activation-link])
+
+  ;; TODO - shouldnt be email but...
+  (send-activation-message [this email activation-uri])
 
   (de-activate-account [this email password])
 
+  ;; TODO:; not URI as it can be an sms
   (reset-password [this email old-password new-password]))
 
 ;; TODO: We could use something like https://github.com/adambard/failjure for error handling
 (s/defrecord EmailBasedAuthentication
     [account-store :-  AuthStore
      account-activator :- Email
-     hash-fns :- HashFns
-     activation-link :- s/Str ;; TODO: URI?
-     ]
+     hash-fns :- HashFns]
+
   Authentication
-  (sign-up [this name email password & other-names] 
+  (send-activation-message [_ email activation-uri]
+    (let [account (account/fetch account-store email)]
+      (if account
+        (if (:activated account)
+          {:error :already-active}
+          (let [activation-id (fxc.core/generate 32)
+                activation-link (str activation-uri "/" activation-id)]
+            (if-not (m/email-and-update! account-activator email activation-link)
+              {:error :email}
+              account)))
+        ;; TODO: send an email to that email
+        {:error :not-found})))
+  
+  (sign-up [this name email password activation-uri & other-names] 
     (if (account/fetch account-store email)
       {:error :already-exists}
-      (let [new-account (account/new-account! account-store
-                                              (cond-> {:name name
-                                                       :email email
-                                                       :password password}
-                                                other-names (assoc :other-names other-names))
-                                              hash-fns)]
-        (if-not (m/email-and-update! account-activator email activation-link)
-          {:error :email}
-          new-account))))
+      (do (account/new-account! account-store
+                                (cond-> {:name name
+                                         :email email
+                                         :password password}
+                                  other-names (assoc :other-names other-names))
+                                hash-fns)
+          (send-activation-message this email activation-uri))))
   
-  (sign-in [this email password]
+  (sign-in [_ email password]
     (if-let [account (account/fetch account-store email)]
       (if (:activated account)
         (if (account/correct-password? account-store email password (:hash-check-fn hash-fns))
@@ -77,93 +93,22 @@
         {:error :account-inactive})
       {:error :not-found}))
 
-  )
+  (activate-account [_ email activation-link]
+    (let [account (account/fetch-by-activation-link account-store activation-link)]
+      (if account
+        (if (= (:email account) email)
+          (account/activate! account-store email)
+          {:error :no-matching-email})
+        {:error :not-found})))
 
+  (de-activate-account [_ email de-activation-link]
+    ;; TODO
+    )
 
-
-
-#_(lc/defresource create-account [account-store email-activator]
-  :allowed-methods [:post]
-  :available-media-types content-types
-
-  :known-content-type? #(check-content-type % content-types)
-
-  :processable? (fn [ctx]
-                  (let [{:keys [status data problems]}
-                        (fh/validate-form sign-in-page/sign-up-form
-                                          (ch/context->params ctx))]
-                    (if (= :ok status)
-                      (let [email (-> ctx :request :params :email)]
-                        (if (account/fetch account-store email)
-                          [false (fh/form-problem (conj problems
-                                                        {:keys [:email] :msg (str "An account with email " email
-                                                                                     " already exists.")}))]
-                          ctx))
-                      [false (fh/form-problem problems)])))
-
-  :handle-unprocessable-entity (fn [ctx] 
-                                 (lr/ring-response (fh/flash-form-problem
-                                                    (r/redirect (routes/absolute-path :sign-in))
-                                                    ctx)))
-  :post! (fn [ctx]
-           (let [data (-> ctx :request :params)
-                 email (get data :email)]
-             (if (account/new-account! account-store (select-keys data [:first-name :last-name :email :password]))
-               (when-not (email-activation/email-and-update! email-activator email) 
-                 (error-redirect ctx "The activation email failed to send "))
-               (log/error "Something went wrong when creating a user in the DB"))))
-
-  :post-redirect? (fn [ctx] 
-                    (assoc ctx
-                           :location (routes/absolute-path :email-confirmation))))
-
-
-
-#_(lc/defresource activate-account [account-store]
-  :allowed-methods [:get]
-  :available-media-types ["text/html"]
-  :handle-ok (fn [ctx]
-               (let [activation-code (get-in ctx [:request :params :activation-id])
-                     email (get-in ctx [:request :params :email])]
-                 (if-let [account (account/fetch-by-activation-id account-store activation-code)]
-                   (if (= (:email account) email)
-                     (do (account/activate! account-store (:email account))
-                         (-> (routes/absolute-path :account-activated)
-                             r/redirect 
-                             lr/ring-response))
-                     (error-redirect ctx "The email and activation id do not match"))
-                   (error-redirect ctx "The activation id could not be found")))))
-
-#_(lc/defresource resend-activation-email [account-store email-activator]
-  :allowed-methods [:post]
-  :available-media-types content-types
-  :known-content-type? #(check-content-type % content-types)
-  :processable? (fn [ctx]
-                  (let [{:keys [status data problems]}
-                        (fh/validate-form sign-in-page/resend-activation-form
-                                          (ch/context->params ctx))]
-                    (if (= :ok status)
-                      (let [email (-> ctx :request :params :activation-email)]
-                        (if-not (account/fetch account-store email)
-                          [false (fh/form-problem (conj problems
-                                                        {:keys [:email] :msg (str "The email " email " is not registered yet. Please sign up first")}))]
-                          ctx))
-                      [false (fh/form-problem problems)])))
-
-  :handle-unprocessable-entity (fn [ctx] 
-                                 (lr/ring-response (fh/flash-form-problem
-                                                    (r/redirect (routes/absolute-path :sign-in))
-                                                    ctx)))
-  :post! (fn [ctx]
-           (let [email (get-in ctx [:request :params :activation-email])
-                 account (account/fetch account-store email)]
-             (when-not (email-activation/email-and-update! email-activator email)
-               (error-redirect ctx "The activation email failed to send")
-               (log/error "The activation email failed to send"))))
-
-  :post-redirect? (fn [ctx] 
-                    (assoc ctx
-                           :location (routes/absolute-path :email-confirmation))))
+  (reset-password [_ email old-password new-password]
+    (if (account/correct-password? account-store email old-password (:hash-check-fn hash-fns))
+      (account/update-password! account-store email new-password (:hash-fn hash-fns))
+      {:error :wrong-password})))
 
 #_(lc/defresource send-password-recovery-email [account-store password-recovery-store password-recoverer]
   :allowed-methods [:post]
