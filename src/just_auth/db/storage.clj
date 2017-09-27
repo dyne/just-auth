@@ -71,4 +71,4 @@
 (defn create-in-memory-stores [store-names]
   (zipmap
    (map #(keyword %) store-names)
-   (create-memory-store)))
+   (repeat (count store-names) (create-memory-store))))
