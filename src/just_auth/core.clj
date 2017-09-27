@@ -27,8 +27,10 @@
              [password-recovery :as pr]
              [storage :refer [AuthStore]]]
             [just-auth
-             [messaging :as m :refer [Email]]
-             [schema :refer [HashFns]]]
+             [schema :refer [HashFns
+                             AuthStores
+                             EmailSchema]]
+             [messaging :as m]]
             [taoensso.timbre :as log]
             [schema.core :as s]
             [fxc.core :as fxc]))
@@ -54,8 +56,8 @@
 (s/defrecord EmailBasedAuthentication
     [account-store :-  AuthStore
      password-recovery-store :- AuthStore
-     account-activator :- Email
-     password-recoverer :- Email
+     account-activator :- EmailSchema
+     password-recoverer :- EmailSchema
      hash-fns :- HashFns]
 
   Authentication
@@ -128,3 +130,14 @@
       {:error :not-found})))
 
 
+(s/defn ^:always-validate new-email-based-authentication
+  [stores :- AuthStores
+   account-activator :- EmailSchema
+   password-recoverer :- EmailSchema
+   hash-fns :- HashFns]
+  (s/validate just_auth.core.Authentication
+              (map->EmailBasedAuthentication {:account-store (:account-store stores)
+                                              :password-recovery-store (:password-recovery-store stores)
+                                              :password-recoverer password-recoverer
+                                              :account-activator account-activator
+                                              :hash-fns hash-fns})))

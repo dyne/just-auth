@@ -78,17 +78,23 @@
                           ;; the SUCCESS is needed to imitate poster responses
                           :error :SUCCESS})))
 
-(defrecord StubActivationEmail [emails account-store]
+(defrecord StubAccountActivator [emails account-store]
   Email
   (email-and-update! [_ email activation-link]
     (update-emails emails {:activation-link activation-link})
     (account/update-activation-token! account-store email activation-link) 
     (first @emails)))
 
-(defrecord StubPasswordRecoveryEmail [emails password-recovery-store]
+(defn new-stub-account-activator [stores]
+  (->StubAccountActivator (atom []) (:account-store stores)))
+
+(defrecord StubPasswordRecoverer [emails password-recovery-store]
   Email
   (email-and-update! [_ email password-recovery-link]
     (update-emails emails {:password-recovery-link password-recovery-link} email)
     (password-recovery/new-entry! password-recovery-store
                                   email password-recovery-link)
     (first @emails)))
+
+(defn new-stub-password-recoverer [stores]
+  (->StubPasswordRecoverer (atom []) (:password-recovery-store stores)))

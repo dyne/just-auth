@@ -23,11 +23,17 @@
 
 (ns just-auth.schema
   (:require [just-auth.db.storage :refer [AuthStore]]
+            [just-auth.messaging :refer [Email]]
             [schema.core :as s]))
 
-(def HashFns
-  {:hash-fn s/Any
-   :hash-check-fn s/Any ;;TODO
-   })
+(def StoreSchema just_auth.db.storage.AuthStore)
+(def EmailSchema just_auth.messaging.Email)
+
+(s/defschema HashFns
+  {:hash-fn clojure.lang.Fn
+   :hash-check-fn clojure.lang.Fn})
+
+(def AuthStores {:account-store StoreSchema
+                 :password-recovery-store StoreSchema})
 
 

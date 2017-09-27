@@ -23,7 +23,7 @@
 
 (ns just-auth.db.storage)
 
-;; TODO duplicate from freecoin-lib
+;; TODO duplicate from freecoin-lib. Extract storage lib?
 (defprotocol AuthStore
   (store! [e k item]
     "Store item against the key k")
