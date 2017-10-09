@@ -15,11 +15,11 @@
                  ;; TODO: probably should come from external project using the lib: hashers
                  [buddy/buddy-hashers "1.2.0"] 
                  
-                 ;; mongodb
-                 [com.novemberain/monger "3.1.0"]
-
                  ;; fxc secret sharing protocol
                  [org.clojars.dyne/fxc "0.5.0"]
+
+                 ;; storage lib
+                 [org.clojars.dyne/clj-storage "0.2.0-SNAPSHOT"]
 
                  ;; config etc.
                  [org.clojars.dyne/auxiliary "0.2.0-SNAPSHOT"]

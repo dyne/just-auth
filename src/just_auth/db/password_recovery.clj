@@ -22,7 +22,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (ns just-auth.db.password-recovery
-  (:require [just-auth.db.storage :as storage]
+  (:require [clj-storage.core :as storage]
             [buddy.hashers :as hashers]
             [taoensso.timbre :as log]))
 

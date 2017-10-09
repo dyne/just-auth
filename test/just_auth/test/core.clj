@@ -4,25 +4,33 @@
              [core  :as auth-lib]
              [schema :as schema]
              [messaging :as m]]
-            [just-auth.db
-             [storage :as storage]]
+            [clj-storage.core :as storage]
             [schema.core :as s]
             [taoensso.timbre :as log]
             [buddy.hashers :as hashers]))
 
-(facts "Create a new email based authentication record and validate schemas"
+(fact "Create a new email based authentication record and validate schemas"
+      (let [stores-m (storage/create-in-memory-stores ["account-store" "password-recovery-store"])
+            hash-fns {:hash-fn hashers/derive
+                      :hash-check-fn hashers/check}
+            email-authentication (auth-lib/new-email-based-authentication stores-m
+                                                 (m/new-stub-account-activator stores-m)
+                                                 (m/new-stub-password-recoverer stores-m)
+                                                 hash-fns)]
 
-       (fact "In memory stores"
-             (let [stores-m (storage/create-in-memory-stores ["account-store" "password-recovery-store"])
-                   hash-fns {:hash-fn hashers/derive
-                             :hash-check-fn hashers/check}]
+        (s/validate schema/AuthStores stores-m) => truthy
 
-               (s/validate schema/AuthStores stores-m) => truthy
+        (s/validate schema/HashFns hash-fns) => truthy
 
-               (s/validate schema/HashFns hash-fns) => truthy
+        
+        email-authentication => truthy
 
-               (auth-lib/new-email-based-authentication stores-m
-                                                        (m/new-stub-account-activator stores-m)
-                                                        (m/new-stub-password-recoverer stores-m)
-                                                        hash-fns)
-               => truthy)))
+        (fact "Sign up a user and check that email has been sent"
+              (class email-authentication) => nil
+              (auth-lib/sign-up email-authentication
+                                "Some name"
+                                "some@mail.com"
+                                "12345678"
+                                {:activation-uri "http://test.com"}
+                                ;["nickname"]
+                                ))))

@@ -24,10 +24,10 @@
 (ns just-auth.messaging
   (:require [postal.core :as postal]
             [just-auth.db
-             [account :as account]
-             [mongo :as mongo]
+             [account :as account] 
              [password-recovery :as password-recovery]]
-            [taoensso.timbre :as log]))
+            [taoensso.timbre :as log]
+            [clj-storage.db.mongo :as mongo]))
 
 (defn postal-basic-conf [conf]
   {:host (:email-server conf)

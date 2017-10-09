@@ -24,8 +24,7 @@
 (ns just-auth.core
   (:require [just-auth.db 
              [account :as account]
-             [password-recovery :as pr]
-             [storage :refer [AuthStore]]]
+             [password-recovery :as pr]]
             [just-auth
              [schema :refer [HashFns
                              AuthStores
@@ -33,7 +32,8 @@
              [messaging :as m]]
             [taoensso.timbre :as log]
             [schema.core :as s]
-            [fxc.core :as fxc]))
+            [fxc.core :as fxc]
+            [clj-storage.core :refer [Store]]))
 
 (defprotocol Authentication
   ;; About names http://www.kalzumeus.com/2010/06/17/falsehoods-programmers-believe-about-name
