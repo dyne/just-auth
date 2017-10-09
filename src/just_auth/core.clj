@@ -28,7 +28,8 @@
             [just-auth
              [schema :refer [HashFns
                              AuthStores
-                             EmailSchema]]
+                             EmailSchema
+                             EmailSignUp]]
              [messaging :as m]]
             [taoensso.timbre :as log]
             [schema.core :as s]
@@ -37,6 +38,7 @@
 
 (defprotocol Authentication
   ;; About names http://www.kalzumeus.com/2010/06/17/falsehoods-programmers-believe-about-name
+  ;; TODO: no varargs
   (sign-up [this name email password second-step-conf & other-names])
 
   (sign-in [this email password])
@@ -52,10 +54,30 @@
 
   (reset-password [this email old-password new-password second-step-conf]))
 
+
+(s/defn ^:always-validate sign-up-with-email
+  [authenticator :- Authentication
+   account-store :- Store
+   {:keys [name
+           other-names
+           email
+           password 
+           activation-uri]} :- EmailSignUp
+   hash-fns :- HashFns]
+  (if (account/fetch account-store email)
+     {:error :already-exists}
+     (do (account/new-account! account-store
+                               (cond-> {:name name
+                                        :email email
+                                        :password password}
+                                 other-names (assoc :other-names other-names))
+                               hash-fns)
+         (send-activation-message authenticator email activation-uri))))
+
 ;; TODO: We could use something like https://github.com/adambard/failjure for error handling
 (s/defrecord EmailBasedAuthentication
-    [account-store :-  AuthStore
-     password-recovery-store :- AuthStore
+    [account-store :-  Store
+     password-recovery-store :- Store
      account-activator :- EmailSchema
      password-recoverer :- EmailSchema
      hash-fns :- HashFns]
@@ -88,15 +110,11 @@
         {:error :not-found})))
   
   (sign-up [this name email password {:keys [activation-uri]} & other-names] 
-    (if (account/fetch account-store email)
-      {:error :already-exists}
-      (do (account/new-account! account-store
-                                (cond-> {:name name
-                                         :email email
-                                         :password password}
-                                  other-names (assoc :other-names other-names))
-                                hash-fns)
-          (send-activation-message this email activation-uri))))
+    (sign-up-with-email (log/spy this) account-store {:name name
+                                               :other-names other-names
+                                               :email email
+                                               :password password
+                                               :activation-uri activation-uri} hash-fns))
   
   (sign-in [_ email password]
     (if-let [account (account/fetch account-store email)]

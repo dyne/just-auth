@@ -22,11 +22,11 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (ns just-auth.schema
-  (:require [just-auth.db.storage :refer [AuthStore]]
+  (:require [clj-storage.core :refer [Store]]
             [just-auth.messaging :refer [Email]]
             [schema.core :as s]))
 
-(def StoreSchema just_auth.db.storage.AuthStore)
+(def StoreSchema clj_storage.core.Store)
 (def EmailSchema just_auth.messaging.Email)
 
 (s/defschema HashFns
@@ -36,4 +36,12 @@
 (def AuthStores {:account-store StoreSchema
                  :password-recovery-store StoreSchema})
 
+;; shcema for sign-up-with-email ?????
+(def EmailSignUp
+  {:name s/Str
+   :other-names [s/Str]
+   :email s/Str ;;TODO email reg exp?
+   :password s/Str
+   :activation-uri :s/Str ;; TODO URI
+   })
 
