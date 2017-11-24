@@ -31,7 +31,8 @@
                              EmailSchema
                              EmailSignUp
                              StoreSchema]]
-             [messaging :as m]]
+             [messaging :as m]
+             [util :as u]]
             [taoensso.timbre :as log]
             [schema.core :as s]
             [fxc.core :as fxc]))
@@ -89,7 +90,8 @@
         (if (:activated account)
           {:error :already-active}
           (let [activation-id (fxc.core/generate 32)
-                activation-link (str activation-uri "/" activation-id)]
+                activation-link (u/construct-link {:uri activation-uri
+                                                   :token activation-id})]
             (if-not (m/email-and-update! account-activator email activation-link)
               {:error :email}
               account)))
@@ -102,7 +104,8 @@
         (if (pr/fetch password-recovery-store email)
           {:error :already-sent}
           (let [password-reset-id (fxc.core/generate 32)
-                password-reset-link (str reset-uri "/" password-reset-id)]
+                password-reset-link (u/construct-link {:uri reset-uri
+                                                       :token password-reset-id})]
             (if-not (m/email-and-update! password-recoverer email password-reset-link)
               {:error :email}
               account)))
