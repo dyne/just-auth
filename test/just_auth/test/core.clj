@@ -3,8 +3,10 @@
             [just-auth
              [core  :as auth-lib]
              [schema :as schema]
-             [messaging :as m]]
-            [clj-storage.core :as storage]
+             [messaging :as m]
+             [util :as u]]
+            [just-auth.db.account :as account]
+            [clj-storage.core :as storage] 
             [schema.core :as s]
             [taoensso.timbre :as log]
             [buddy.hashers :as hashers]))
@@ -23,9 +25,21 @@
         (s/validate schema/HashFns hash-fns) => truthy
 
         (fact "Sign up a user and check that email has been sent"
-              (auth-lib/sign-up email-authentication
-                                "Some name"
-                                "some@mail.com"
-                                "12345678"
-                                {:activation-uri "http://test.com"}
-                                ["nickname"]))))
+              (let [email "some@mail.com"
+                    uri "http://test.com"]
+                (auth-lib/sign-up email-authentication
+                                  "Some name"
+                                  email
+                                  "12345678"
+                                  {:activation-uri uri}
+                                  ["nickname"])
+                (-> email-authentication :account-activator :emails deref count) => 1
+                (let [account-created (account/fetch (:account-store stores-m) email)]
+                  account-created => truthy
+                  (:activated (account/fetch (:account-store stores-m) email)) => false
+                  (fact "Activate account"
+                        (let [activation-token (:activattion-token account-created)]
+                          (auth-lib/activate-account email-authentication email
+                                                     {:activation-link (u/construct-link {:uri uri
+                                                                                         :token activation-token})}) => truthy
+                          (:activated (account/fetch (:account-store stores-m) email)) => true)))))))
