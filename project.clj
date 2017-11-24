@@ -13,19 +13,19 @@
                  [com.taoensso/timbre "4.10.0"]
 
                  ;; TODO: probably should come from external project using the lib: hashers
-                 [buddy/buddy-hashers "1.2.0"] 
+                 [buddy/buddy-hashers "1.3.0"] 
                  
                  ;; fxc secret sharing protocol
                  [org.clojars.dyne/fxc "0.5.0"]
 
                  ;; storage lib
-                 [org.clojars.dyne/clj-storage "0.2.0-SNAPSHOT"]
+                 [org.clojars.dyne/clj-storage "0.4.0"]
 
                  ;; config etc.
-                 [org.clojars.dyne/auxiliary "0.2.0-SNAPSHOT"]
+                 [org.clojars.dyne/auxiliary "0.3.0"]
 
                  ;; Data validation
-                 [prismatic/schema "1.1.6"]
+                 [prismatic/schema "1.1.7"]
 
                  ;; email
                  [com.draines/postal "2.0.2"]]
@@ -39,7 +39,7 @@
              ;; prevent JVM exceptions without stack trace
              ]
 
-  :profiles {:dev {:dependencies [[midje "1.8.3"]]
+  :profiles {:dev {:dependencies [[midje "1.9.0"]]
                    :repl-options {:init-ns just-auth.core}
                    :plugins [[lein-midje "3.1.3"]]}}
 
