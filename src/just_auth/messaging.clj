@@ -81,7 +81,7 @@
 (defrecord StubAccountActivator [emails account-store]
   Email
   (email-and-update! [_ email activation-link]
-    (update-emails emails {:activation-link activation-link})
+    (update-emails emails {:activation-link activation-link} email)
     (account/update-activation-token! account-store email activation-link) 
     (first @emails)))
 

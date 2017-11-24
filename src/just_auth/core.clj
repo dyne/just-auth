@@ -29,17 +29,16 @@
              [schema :refer [HashFns
                              AuthStores
                              EmailSchema
-                             EmailSignUp]]
+                             EmailSignUp
+                             StoreSchema]]
              [messaging :as m]]
             [taoensso.timbre :as log]
             [schema.core :as s]
-            [fxc.core :as fxc]
-            [clj-storage.core :refer [Store]]))
+            [fxc.core :as fxc]))
 
 (defprotocol Authentication
   ;; About names http://www.kalzumeus.com/2010/06/17/falsehoods-programmers-believe-about-name
-  ;; TODO: no varargs
-  (sign-up [this name email password second-step-conf & other-names])
+  (sign-up [this name email password second-step-conf other-names])
 
   (sign-in [this email password])
 
@@ -56,14 +55,15 @@
 
 
 (s/defn ^:always-validate sign-up-with-email
-  [authenticator :- Authentication
-   account-store :- Store
+  [authenticator :- just_auth.core.Authentication
+   account-store :- StoreSchema
    {:keys [name
            other-names
            email
            password 
            activation-uri]} :- EmailSignUp
-   hash-fns :- HashFns]
+   hash-fns :- HashFns
+   ]
   (if (account/fetch account-store email)
      {:error :already-exists}
      (do (account/new-account! account-store
@@ -76,8 +76,8 @@
 
 ;; TODO: We could use something like https://github.com/adambard/failjure for error handling
 (s/defrecord EmailBasedAuthentication
-    [account-store :-  Store
-     password-recovery-store :- Store
+    [account-store :-  StoreSchema
+     password-recovery-store :- StoreSchema
      account-activator :- EmailSchema
      password-recoverer :- EmailSchema
      hash-fns :- HashFns]
@@ -109,12 +109,12 @@
         ;; TODO: send an email to that email?
         {:error :not-found})))
   
-  (sign-up [this name email password {:keys [activation-uri]} & other-names] 
-    (sign-up-with-email (log/spy this) account-store {:name name
-                                               :other-names other-names
-                                               :email email
-                                               :password password
-                                               :activation-uri activation-uri} hash-fns))
+  (sign-up [this name email password {:keys [activation-uri]} other-names]
+    (sign-up-with-email this account-store {:name name
+                                            :other-names other-names
+                                            :email email
+                                            :password password
+                                            :activation-uri activation-uri} hash-fns))
   
   (sign-in [_ email password]
     (if-let [account (account/fetch account-store email)]

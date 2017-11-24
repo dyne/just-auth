@@ -42,6 +42,6 @@
    :other-names [s/Str]
    :email s/Str ;;TODO email reg exp?
    :password s/Str
-   :activation-uri :s/Str ;; TODO URI
+   :activation-uri s/Str ;; TODO URI
    })
 

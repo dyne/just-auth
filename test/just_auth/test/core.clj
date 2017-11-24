@@ -22,15 +22,10 @@
 
         (s/validate schema/HashFns hash-fns) => truthy
 
-        
-        email-authentication => truthy
-
         (fact "Sign up a user and check that email has been sent"
-              (class email-authentication) => nil
               (auth-lib/sign-up email-authentication
                                 "Some name"
                                 "some@mail.com"
                                 "12345678"
                                 {:activation-uri "http://test.com"}
-                                ;["nickname"]
-                                ))))
+                                ["nickname"]))))
