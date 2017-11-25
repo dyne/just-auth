@@ -64,8 +64,7 @@
            email
            password 
            activation-uri]} :- EmailSignUp
-   hash-fns :- HashFns
-   ]
+   hash-fns :- HashFns]
   (if (account/fetch account-store email)
      (do (account/new-account! account-store
                                (cond-> {:name name
