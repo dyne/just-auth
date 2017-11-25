@@ -73,7 +73,7 @@
                                        :email email
                                        :password password}
                                 other-names (assoc :other-names other-names))
-                              hash-fns)
+                              (:hash-fn hash-fns))
         (send-activation-message authenticator email {:activation-uri activation-uri}))))
 
 ;; TODO: We could use something like https://github.com/adambard/failjure for error handling
@@ -154,6 +154,7 @@
 
 
 (s/defn ^:always-validate new-email-based-authentication
+  ;; TODO: do we need some sort of session that expires after a while? And if so should it be handled by this lib or on top of it?
   [stores :- AuthStores
    account-activator :- EmailSchema
    password-recoverer :- EmailSchema

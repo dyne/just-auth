@@ -48,5 +48,10 @@
                         (let [activation-link (:activation-link account-created)]
                           (f/ok? (auth-lib/activate-account email-authentication email
                                                             {:activation-link activation-link})) => truthy
-                          (:activated (account/fetch (:account-store stores-m) email)) => true
-                          )))))))
+                          (:activated (account/fetch (:account-store stores-m) email)) => true))
+                  (fact "We can now log in"
+                        (f/ok? (auth-lib/sign-in email-authentication email password)) => true)
+
+                  (fact "Reset password and sign in with new password"
+                        ;; TODO expiration
+                        ))))))
