@@ -51,7 +51,7 @@
 (defrecord AccountActivator [conf account-store]
   Email
   (email-and-update! [_ email activation-link]
-    (let [email-response (if (account/update-activation-token! account-store email activation-link)
+    (let [email-response (if (account/update-activation-link! account-store email activation-link)
                            (send-email conf email
                                        "Please activate your freecoin account"
                                        (str "Please click on the link below to activate your account " activation-link))
@@ -82,7 +82,7 @@
   Email
   (email-and-update! [_ email activation-link]
     (update-emails emails {:activation-link activation-link} email)
-    (account/update-activation-token! account-store email activation-link) 
+    (account/update-activation-link! account-store email activation-link) 
     (first @emails)))
 
 (defn new-stub-account-activator [stores]

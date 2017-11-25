@@ -32,8 +32,8 @@
                                                 :created-at (java.util.Date.)
                                                 :recovery-token recovery-token}))
 
-(defn fetch-by-password-recovery-token [password-recovery-store recovery-token]
-  (first (storage/query password-recovery-store {:recovery-link recovery-token})))
+(defn fetch-by-password-recovery-link [password-recovery-store recovery-link]
+  (first (storage/query password-recovery-store {:recovery-link recovery-link})))
 
 (defn fetch [password-recovery-store email]
   (some-> (storage/fetch password-recovery-store email)))

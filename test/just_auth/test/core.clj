@@ -45,8 +45,8 @@
                         (f/failed? (auth-lib/sign-in email-authentication email password)) => true
                         (:message (auth-lib/sign-in email-authentication email password)) => "The account needs to be activated first")
                   (fact "Activate account"
-                        (let [activation-token (:activattion-token account-created)]
-                          (auth-lib/activate-account email-authentication email
-                                                     {:activation-link (u/construct-link {:uri uri
-                                                                                         :token activation-token})}) => truthy
-                          (:activated (account/fetch (:account-store stores-m) email)) => true)))))))
+                        (let [activation-link (:activation-link account-created)]
+                          (f/ok? (auth-lib/activate-account email-authentication email
+                                                            {:activation-link activation-link})) => truthy
+                          (:activated (account/fetch (:account-store stores-m) email)) => true
+                          )))))))

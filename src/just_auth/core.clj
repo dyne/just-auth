@@ -66,15 +66,15 @@
            activation-uri]} :- EmailSignUp
    hash-fns :- HashFns]
   (if (account/fetch account-store email)
-     (do (account/new-account! account-store
-                               (cond-> {:name name
-                                        :email email
-                                        :password password}
-                                 other-names (assoc :other-names other-names))
-                               hash-fns)
-         (send-activation-message authenticator email activation-uri))))
     ;; TODO: warn with an email for this attempt?
     (f/fail "An account with this email already exists")
+    (do (account/new-account! account-store
+                              (cond-> {:name name
+                                       :email email
+                                       :password password}
+                                other-names (assoc :other-names other-names))
+                              hash-fns)
+        (send-activation-message authenticator email {:activation-uri activation-uri}))))
 
 ;; TODO: We could use something like https://github.com/adambard/failjure for error handling
 (s/defrecord EmailBasedAuthentication
@@ -133,7 +133,7 @@
       (f/fail (str "No account found for email " email))))
 
   (activate-account [_ email {:keys [activation-link]}]
-    (let [account (account/fetch-by-activation-token account-store activation-link)]
+    (let [account (account/fetch-by-activation-link account-store activation-link)]
       (if account
         (if (= (:email account) email)
           (account/activate! account-store email)
@@ -145,7 +145,7 @@
     )
 
   (reset-password [_ email old-password new-password {:keys [password-reset-link]}]
-    (if (= (pr/fetch-by-password-recovery-token password-recovery-store password-reset-link))
+    (if (= (pr/fetch-by-password-recovery-link password-recovery-store password-reset-link))
       (if (account/correct-password? account-store email old-password (:hash-check-fn hash-fns))
         (account/update-password! account-store email new-password (:hash-fn hash-fns))
         ;; TODO: send email?
