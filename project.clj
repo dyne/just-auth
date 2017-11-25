@@ -28,7 +28,11 @@
                  [prismatic/schema "1.1.7"]
 
                  ;; email
-                 [com.draines/postal "2.0.2"]]
+                 [com.draines/postal "2.0.2"]
+
+                 ;;error handling
+                 [failjure "1.2.0"]
+                 ]
 
   :source-paths ["src"]
   :resource-paths ["resources" "test-resources"]

@@ -35,7 +35,8 @@
              [util :as u]]
             [taoensso.timbre :as log]
             [schema.core :as s]
-            [fxc.core :as fxc]))
+            [fxc.core :as fxc]
+            [failjure.core :as f]))
 
 (defprotocol Authentication
   ;; About names http://www.kalzumeus.com/2010/06/17/falsehoods-programmers-believe-about-name
@@ -66,7 +67,6 @@
    hash-fns :- HashFns
    ]
   (if (account/fetch account-store email)
-     {:error :already-exists}
      (do (account/new-account! account-store
                                (cond-> {:name name
                                         :email email
@@ -74,6 +74,8 @@
                                  other-names (assoc :other-names other-names))
                                hash-fns)
          (send-activation-message authenticator email activation-uri))))
+    ;; TODO: warn with an email for this attempt?
+    (f/fail "An account with this email already exists")
 
 ;; TODO: We could use something like https://github.com/adambard/failjure for error handling
 (s/defrecord EmailBasedAuthentication
@@ -88,29 +90,29 @@
     (let [account (account/fetch account-store email)]
       (if account
         (if (:activated account)
-          {:error :already-active}
+          (f/fail "This account is already active")
           (let [activation-id (fxc.core/generate 32)
                 activation-link (u/construct-link {:uri activation-uri
                                                    :token activation-id})]
             (if-not (m/email-and-update! account-activator email activation-link)
-              {:error :email}
+              (f/fail "The email was not sent.")
               account)))
         ;; TODO: send an email to that email
-        {:error :not-found})))
+        (f/fail (str "No account found for email " email)))))
 
   (send-password-reset-message [_ email {:keys [reset-uri]}]
     (let [account (account/fetch account-store email)]
       (if account
         (if (pr/fetch password-recovery-store email)
-          {:error :already-sent}
+          (f/fail "A password recovery request has already been sent.")
           (let [password-reset-id (fxc.core/generate 32)
                 password-reset-link (u/construct-link {:uri reset-uri
                                                        :token password-reset-id})]
             (if-not (m/email-and-update! password-recoverer email password-reset-link)
-              {:error :email}
+              (f/fail "The email was not sent.")
               account)))
         ;; TODO: send an email to that email?
-        {:error :not-found})))
+        (f/fail (str "No account found for email " email)))))
   
   (sign-up [this name email password {:keys [activation-uri]} other-names]
     (sign-up-with-email this account-store {:name name
@@ -127,17 +129,17 @@
            :name (:name account)
            :other-names (:other-names account)}
           ;; TODO: send email?
-          {:error :wrong-password})
-        {:error :account-inactive})
-      {:error :not-found}))
+          (f/fail "Wrong username and/or password"))
+        (f/fail "The account needs to be activated first"))
+      (f/fail (str "No account found for email " email))))
 
   (activate-account [_ email {:keys [activation-link]}]
     (let [account (account/fetch-by-activation-token account-store activation-link)]
       (if account
         (if (= (:email account) email)
           (account/activate! account-store email)
-          {:error :no-matching-email})
-        {:error :not-found})))
+          (f/fail "The activation code does not match the email."))
+        (f/fail (str "No account found for activation link " activation-link)))))
 
   (de-activate-account [_ email de-activation-link]
     ;; TODO
@@ -147,8 +149,9 @@
     (if (= (pr/fetch-by-password-recovery-token password-recovery-store password-reset-link))
       (if (account/correct-password? account-store email old-password (:hash-check-fn hash-fns))
         (account/update-password! account-store email new-password (:hash-fn hash-fns))
-        {:error :wrong-password})
-      {:error :not-found})))
+        ;; TODO: send email?
+        (f/fail "Wrong username and/or password"))
+      (f/fail "Link might have expired. Please request a new one."))))
 
 
 (s/defn ^:always-validate new-email-based-authentication
