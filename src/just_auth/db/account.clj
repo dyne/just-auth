@@ -30,10 +30,10 @@
 
 (defn new-account!
   [account-store
-   {:keys [name email password flags other-names] :as account-map}
+   {:keys [name email password flags other-names activated] :as account-map}
    hash-fn]
   (storage/store! account-store :email (-> account-map
-                                         (assoc :activated false)
+                                         (assoc :activated (or activated false))
                                          (assoc :flags (or flags []))
                                          (update :password #(generate-hash % hash-fn)))))
 
