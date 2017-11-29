@@ -44,6 +44,8 @@
 
   (sign-in [this email password])
 
+  ;; TODO: sign-out?
+  
   ;; TODO: maybe add password?
   (activate-account [this email second-step-conf])
 
@@ -128,6 +130,7 @@
            :name (:name account)
            :other-names (:other-names account)}
           ;; TODO: send email?
+          ;; TODO: waht to do after x amount of times? Maybe should be handled on server level?
           (f/fail "Wrong username and/or password"))
         (f/fail "The account needs to be activated first"))
       (f/fail (str "No account found for email " email))))
