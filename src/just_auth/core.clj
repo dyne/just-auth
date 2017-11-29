@@ -94,7 +94,9 @@
           (f/fail "This account is already active")
           (let [activation-id (fxc.core/generate 32)
                 activation-link (u/construct-link {:uri activation-uri
-                                                   :token activation-id})]
+                                                   :action "activate"
+                                                   :token activation-id
+                                                   :email email})]
             (if-not (m/email-and-update! account-activator email activation-link)
               (f/fail "The email was not sent.")
               account)))
@@ -108,7 +110,9 @@
           (f/fail "A password recovery request has already been sent.")
           (let [password-reset-id (fxc.core/generate 32)
                 password-reset-link (u/construct-link {:uri reset-uri
-                                                       :token password-reset-id})]
+                                                       :token password-reset-id
+                                                       :email email
+                                                       :action "reset-password"})]
             (if-not (m/email-and-update! password-recoverer email password-reset-link)
               (f/fail "The email was not sent.")
               account)))

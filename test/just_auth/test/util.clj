@@ -5,8 +5,10 @@
 (fact "check the link construction"
       (u/construct-link {:uri "locahost:8000"
                          :email "me@mail.com"
-                         :token "come-token"}) => "http://locahost:8000/me@mail.com/token"
+                         :token "some-token"
+                         :action "activate"}) => "http://locahost:8000/activate/me@mail.com/some-token"
 
       (u/construct-link {:uri "https://www.dyne.org/"
                          :email "me@mail.com"
-                         :token "come-token"}) => "https://www.dyne.org//me@mail.com/token")
+                         :token "some-token"
+                         :action "reset-password"}) => "https://www.dyne.org/reset-password/me@mail.com/some-token")

@@ -23,9 +23,15 @@
 (ns just-auth.util
   (:require [taoensso.timbre :as log]))
 
+(defn parts->path [uri token email action]
+  (if (clojure.string/ends-with? uri "/")
+    (str uri action "/" email "/" token)
+    (str uri "/" action "/" email "/" token)))
+
 (defn construct-link
-  [{:keys [uri token email]}]
+  ;; TODO: add schema
+  [{:keys [uri token email action]}]
   (try
-    (.toString (java.net.URL. (str uri "/" email "/token")))
+    (.toString (java.net.URL. (parts->path uri token email action)))
     (catch Exception e 
-      (.toString (java.net.URL. (str "http://" uri "/" email "/token"))))))
+      (.toString (java.net.URL. (str "http://" (parts->path uri token email action)))))))
