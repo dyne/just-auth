@@ -23,6 +23,9 @@
 (ns just-auth.util
   (:require [taoensso.timbre :as log]))
 
+(defn link->token [link]
+  (-> link (clojure.string/split #"/") last))
+
 (defn parts->path [uri token email action]
   (if (clojure.string/ends-with? uri "/")
     (str uri action "/" email "/" token)
