@@ -85,8 +85,11 @@
     (account/update-activation-link! account-store email activation-link) 
     (first @emails)))
 
-(defn new-stub-account-activator [stores]
-  (->StubAccountActivator (atom []) (:account-store stores)))
+(defn new-stub-account-activator
+  ([stores]
+   (new-stub-account-activator stores (atom [])))
+  ([stores emails]
+   (->StubAccountActivator emails (:account-store stores))))
 
 (defrecord StubPasswordRecoverer [emails password-recovery-store]
   Email
@@ -96,5 +99,8 @@
                                   email password-recovery-link)
     (first @emails)))
 
-(defn new-stub-password-recoverer [stores]
-  (->StubPasswordRecoverer (atom []) (:password-recovery-store stores)))
+(defn new-stub-password-recoverer
+  ([stores]
+   (new-stub-password-recoverer (:password-recovery-store stores) (atom [])))
+  ([stores emails]
+   (->StubPasswordRecoverer emails (:password-recovery-store stores))))
