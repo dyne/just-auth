@@ -78,7 +78,6 @@
                               (:hash-fn hash-fns))
         (send-activation-message authenticator email {:activation-uri activation-uri}))))
 
-;; TODO: We could use something like https://github.com/adambard/failjure for error handling
 (s/defrecord EmailBasedAuthentication
     [account-store :-  StoreSchema
      password-recovery-store :- StoreSchema
