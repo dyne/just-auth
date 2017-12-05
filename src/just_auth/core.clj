@@ -171,3 +171,28 @@
                                               :password-recoverer password-recoverer
                                               :account-activator account-activator
                                               :hash-fns hash-fns})))
+
+(s/defrecord StubEmailBasedAuthentication
+    [account-activator :- EmailMessagingSchema
+     password-recoverer :- EmailMessagingSchema]
+
+  Authentication
+  (send-activation-message [_ email {:keys [activation-uri]}]
+    (let [activation-id (fxc.core/generate 32)
+          activation-link (u/construct-link {:uri activation-uri
+                                             :action "activate"
+                                             :token activation-id
+                                             :email email})]
+      (m/email-and-update! account-activator email activation-link)))
+
+  (send-password-reset-message [_ email {:keys [reset-uri]}]
+    (let [password-reset-id (fxc.core/generate 32)
+          password-reset-link (u/construct-link {:uri reset-uri
+                                                 :token password-reset-id
+                                                 :email email
+                                                 :action "reset-password"})]
+      (m/email-and-update! password-recoverer email password-reset-link))))
+
+(defn new-stub-email-based-authentication [stores emails]
+  (map->StubEmailBasedAuthentication {:account-activator (m/new-stub-account-activator stores emails)
+                                      :password-recoverer (m/new-stub-password-recoverer stores emails)}))
