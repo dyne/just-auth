@@ -27,7 +27,7 @@
             [schema.core :as s]))
 
 (def StoreSchema clj_storage.core.Store)
-(def EmailSchema just_auth.messaging.Email)
+(def EmailMessagingSchema just_auth.messaging.Email)
 
 (s/defschema HashFns
   {:hash-fn clojure.lang.Fn
