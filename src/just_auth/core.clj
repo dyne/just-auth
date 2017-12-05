@@ -28,7 +28,7 @@
             [just-auth
              [schema :refer [HashFns
                              AuthStores
-                             EmailSchema
+                             EmailMessagingSchema
                              EmailSignUp
                              StoreSchema]]
              [messaging :as m]
@@ -81,8 +81,8 @@
 (s/defrecord EmailBasedAuthentication
     [account-store :-  StoreSchema
      password-recovery-store :- StoreSchema
-     account-activator :- EmailSchema
-     password-recoverer :- EmailSchema
+     account-activator :- EmailMessagingSchema
+     password-recoverer :- EmailMessagingSchema
      hash-fns :- HashFns]
 
   Authentication
@@ -162,8 +162,8 @@
 (s/defn ^:always-validate new-email-based-authentication
   ;; TODO: do we need some sort of session that expires after a while? And if so should it be handled by this lib or on top of it?
   [stores :- AuthStores
-   account-activator :- EmailSchema
-   password-recoverer :- EmailSchema
+   account-activator :- EmailMessagingSchema
+   password-recoverer :- EmailMessagingSchema
    hash-fns :- HashFns]
   (s/validate just_auth.core.Authentication
               (map->EmailBasedAuthentication {:account-store (:account-store stores)
