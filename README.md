@@ -5,6 +5,28 @@
 
 This Free and Open Source research and development activity is funded by the European Commission in the context of Collective Awareness Platforms for Sustainability and Social Innovation (CAPSSI) grants nr.610349 and nr.687922.
 
+## Running the tests
+
+Freecoin comes complete with test units which are run by the CI but can also be run locally.
+
+### Run all tests
+
+For the purpose we use Clojure's `midje` package, to be run with:
+
+```
+lein midje
+```
+
+### Run only the fast tests
+
+Some of the tests are marked as slow. If you want to avoid running them you cn either
+
+`lein midje :filter -slow`
+
+or use the alias
+
+`lein test-basic`
+
 The just auth lib is Copyright (C) 2017 by the Dyne.org Foundation, Amsterdam
 
 The development is lead by Aspasia Beneti <aspra@dyne.org>

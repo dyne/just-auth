@@ -27,12 +27,13 @@
             [taoensso.timbre :as log]))
 
 (defn stores-params-m [args]
-  (when-not (:ttl-password-recovery args)
+  (when-not (:ttl-password-recovery (first args))
     (log/warn "No password expiration time was set, defaulting to 1800 seconds"))
   {"account-store" {}
    "password-recovery-store" {:expireAfterSeconds (if-let [arg-map (first args)]
                                                     (:ttl-password-recovery arg-map)
                                                     1800)}})
+
 
 (defn create-auth-stores [db & args]
   (log/debug "Creating the authentication mongo stores")

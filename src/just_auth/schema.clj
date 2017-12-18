@@ -36,7 +36,6 @@
 (def AuthStores {:account-store StoreSchema
                  :password-recovery-store StoreSchema})
 
-;; shcema for sign-up-with-email ?????
 (def EmailSignUp
   {:name s/Str
    :other-names [s/Str]

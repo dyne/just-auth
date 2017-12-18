@@ -43,6 +43,8 @@
              ;; prevent JVM exceptions without stack trace
              ]
 
+  :aliases {"test-basic" ["midje" ":config" "test-resources/fast-tests.config"]}
+  
   :profiles {:dev {:dependencies [[midje "1.9.0"]]
                    :repl-options {:init-ns just-auth.core}
                    :plugins [[lein-midje "3.1.3"]]}}
