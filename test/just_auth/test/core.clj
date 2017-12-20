@@ -32,10 +32,13 @@
             [schema.core :as s]
             [taoensso.timbre :as log]
             [buddy.hashers :as hashers]
-            [failjure.core :as f]))
+            [failjure.core :as f]
+            [auxiliary.translation :as t]
+            [environ.core :as env]))
 
 (fact "Create a new email based authentication record and validate schemas"
-      (let [stores-m (storage/create-in-memory-stores ["account-store" "password-recovery-store"])
+      (let [_ (t/init (env/env :auth-translation-language))
+            stores-m (storage/create-in-memory-stores ["account-store" "password-recovery-store"])
             hash-fns {:hash-fn hashers/derive
                       :hash-check-fn hashers/check}
             email-authenticator (auth-lib/new-email-based-authentication
@@ -66,7 +69,7 @@
                   (:activated (account/fetch (:account-store stores-m) email)) => false
                   (fact "Before activation one can't sign in"
                         (f/failed? (auth-lib/sign-in email-authenticator email password)) => true
-                        (:message (auth-lib/sign-in email-authenticator email password)) => "The account needs to be activated first")
+                        (:message (log/spy (auth-lib/sign-in email-authenticator email password))) => "The account needs to be activated first")
                   (fact "Activate account"
                         (let [activation-link (:activation-link account-created)]
                           (f/ok? (auth-lib/activate-account email-authenticator email
