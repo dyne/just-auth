@@ -22,7 +22,7 @@
                  [org.clojars.dyne/clj-storage "0.5.0-SNAPSHOT"]
 
                  ;; config etc.
-                 [org.clojars.dyne/auxiliary "0.3.0"]
+                 [org.clojars.dyne/auxiliary "0.4.0-SNAPSHOT"]
 
                  ;; Data validation
                  [prismatic/schema "1.1.7"]
@@ -43,6 +43,13 @@
              ;; prevent JVM exceptions without stack trace
              ]
 
+  :env [
+
+        ;; translation is configured here, strings are hard-coded at compile time
+        ;; the last one acts as fallback if translated strings are not found
+        [:auth-translation-language "lang/auth-en.yml"]
+        [:auth-translation-fallback "lang/auth-en.yml"]]
+  
   :aliases {"test-basic" ["midje" ":config" "test-resources/fast-tests.config"]}
   
   :profiles {:dev {:dependencies [[midje "1.9.0"]]

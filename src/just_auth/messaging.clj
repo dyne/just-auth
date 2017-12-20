@@ -27,7 +27,8 @@
              [account :as account] 
              [password-recovery :as password-recovery]]
             [taoensso.timbre :as log]
-            [clj-storage.db.mongo :as mongo]))
+            [clj-storage.db.mongo :as mongo]
+            [auxiliary.translation :as t]))
 
 (defn postal-basic-conf [conf]
   {:host (:email-server conf)
@@ -53,8 +54,8 @@
   (email-and-update! [_ email activation-link]
     (let [email-response (if (account/update-activation-link! account-store email activation-link)
                            (send-email conf email
-                                       "Please activate your freecoin account"
-                                       (str "Please click on the link below to activate your account " activation-link))
+                                       (t/locale [:email :account-activator :title])
+                                       (str (t/locale [:email :account-activator :content]) activation-link))
                            false)]
       (if (= :SUCCESS (:error email-response))
         email-response
@@ -65,8 +66,8 @@
   (email-and-update! [_ email password-recovery-link]
     (let [email-response       (if (password-recovery/new-entry! password-recovery-store email password-recovery-link)
                                  (send-email conf email
-                                             "Password recovery"
-                                             (str "Password recovery was requested for participant " email ". If you are the participant and want to reset your password click the link below " password-recovery-link " The link will expire soon so be fast!"))
+                                             (t/locale [:email :password-recoverer :title])
+                                             (str (t/locale [:email :password-recoverer :content1]) email (t/locale [:email :password-recoverer :content2])  password-recovery-link (t/locale [:email :password-recoverer :content3])))
                                  false)]
       (if (= :SUCCESS (:error email-response))
         email-response
