@@ -32,7 +32,9 @@
 
                  ;;error handling
                  [failjure "1.2.0"]
-                 ]
+
+                 ;; env variables for configuration
+                 [environ "1.1.0"]]
 
   :source-paths ["src"]
   :resource-paths ["resources" "test-resources"]
