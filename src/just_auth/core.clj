@@ -86,6 +86,7 @@
 (s/defrecord EmailBasedAuthentication
     [account-store :-  StoreSchema
      password-recovery-store :- StoreSchema
+     failed-login-store :- StoreSchema
      account-activator :- EmailMessagingSchema
      password-recoverer :- EmailMessagingSchema
      hash-fns :- HashFns]

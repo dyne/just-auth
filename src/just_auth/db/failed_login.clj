@@ -21,24 +21,19 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(ns just-auth.db.password-recovery
+(ns just-auth.db.failed-login
   (:require [clj-storage.core :as storage]
-            [buddy.hashers :as hashers]
+            [monger.collection :as mc]
+            [clj-time.core :as dt]
             [taoensso.timbre :as log]))
 
-(defn new-entry!
-  [password-recovery-store email recovery-link]
-  (storage/store! password-recovery-store :email {:email email
-                                                :created-at (java.util.Date.)
-                                                :recovery-link recovery-link}))
+(defn new-attempt!
+  [failed-login-store email ip-address]
+  (storage/store! failed-login-store {:email email
+                                      :created-at (java.util.Date.)
+                                      :ip-address ip-address}))
 
-(defn fetch-by-password-recovery-link [password-recovery-store recovery-link]
-  (first (storage/query password-recovery-store {:recovery-link recovery-link})))
-
-(defn fetch [password-recovery-store email]
-  (some-> (storage/fetch password-recovery-store email)))
-
-(defn remove! [password-recovery-store email]
-  (storage/delete! password-recovery-store email))
-
-
+(defn number-attempts [failed-login-store time-window-secs {:keys [email ip-address]}]
+  (let [from-date-time (dt/minus- (dt/now) (dt/seconds time-window-secs))
+        basic-formula {:created-at #(> % from-date-time)}]
+    (mc/count failed-login-store basic-formula)))

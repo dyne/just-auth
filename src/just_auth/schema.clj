@@ -32,7 +32,8 @@
    :hash-check-fn clojure.lang.Fn})
 
 (def AuthStores {:account-store StoreSchema
-                 :password-recovery-store StoreSchema})
+                 :password-recovery-store StoreSchema
+                 :failed-login StoreSchema})
 
 (def EmailSignUp
   {:name s/Str

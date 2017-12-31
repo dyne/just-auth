@@ -32,7 +32,9 @@
   {"account-store" {}
    "password-recovery-store" {:expireAfterSeconds (if-let [arg-map (first args)]
                                                     (:ttl-password-recovery arg-map)
-                                                    1800)}})
+                                                    1800)}
+   "failed-login-store" {}})
+
 
 
 (defn create-auth-stores [db & args]

@@ -31,6 +31,7 @@
             [clj-storage.core :as storage] 
             [schema.core :as s]
             [taoensso.timbre :as log]
+            [buddy.hashers :as hashers]
             [failjure.core :as f]
             [auxiliary.translation :as t]
             [environ.core :as env]))
@@ -76,6 +77,6 @@
                 (fact "We can now log in"
                       (f/ok? (auth-lib/sign-in email-authenticator email password)) => true)
 
-                (fact "Reset password and sign in with new password"
-                      ;; TODO expiration
-                      )))))
+                  (fact "Reset password and sign in with new password"
+                        ;; TODO expiration
+                        ))))))
