@@ -1,5 +1,7 @@
 # Just Auth - A simple and generic two factor authentication lib
 
+[![Build Status](https://travis-ci.org/Commonfare-net/just-auth.svg?branch=master)](https://travis-ci.org/Commonfare-net/just-auth)
+
 ## License
 
 
