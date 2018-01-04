@@ -39,13 +39,36 @@
                       {:email "email-3"
                        :ip-address "ip-3"}
                       {:email "email-4"
-                       :ip-address "ip-4"}])
+                       :ip-address "ip-4"}
+                      {}
+                      {:email "email-4"}])
 
 (against-background [(before :contents (test-db/setup-db))
                      (after :contents (test-db/teardown-db))]
-
                     
                     (facts "Create some failed attempts" 
                            (let [stores (auth-db/create-auth-stores
                                          (test-db/get-test-db))]
-                             ())))
+                             (doseq [attempt failed-attempts]
+                               (fl/new-attempt! (:failed-login-store stores)
+                                                (:email attempt)
+                                                (:ip-address attempt)))
+                             (fact "Count the number of all failed attempts the last 10 seconds"
+                                   (fl/number-attempts (test-db/get-test-db)
+                                                       (-> stores :failed-login-store :coll)
+                                                       10
+                                                       {}) => (count failed-attempts)
+
+                                   (fl/number-attempts (test-db/get-test-db)
+                                                       (-> stores :failed-login-store :coll)
+                                                       10
+                                                       {:email "email-1"}) => (count (filter (comp (partial = "email-1") :email) failed-attempts))
+
+                                   (fl/number-attempts (test-db/get-test-db)
+                                                       (-> stores :failed-login-store :coll)
+                                                       10
+                                                       {:ip-address "ip-1"})  => (count (filter (comp (partial = "ip-1") :ip-address) failed-attempts))
+                                   (fl/number-attempts (test-db/get-test-db)
+                                                       (-> stores :failed-login-store :coll)
+                                                       0
+                                                       {}) => 0))))

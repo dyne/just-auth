@@ -23,17 +23,24 @@
 
 (ns just-auth.db.failed-login
   (:require [clj-storage.core :as storage]
+            monger.json
             [monger.collection :as mc]
+            [monger.operators :refer [$gt]]
             [clj-time.core :as dt]
-            [taoensso.timbre :as log]))
+            [taoensso.timbre :as log]
+            monger.joda-time))
 
 (defn new-attempt!
   [failed-login-store email ip-address]
-  (storage/store! failed-login-store {:email email
-                                      :created-at (java.util.Date.)
-                                      :ip-address ip-address}))
+  (let [created-at (java.util.Date.)
+        id (str (java.util.UUID/randomUUID))]
+    (storage/store-and-create-id! failed-login-store {:email email
+                                                      :created-at created-at
+                                                      :ip-address ip-address})))
 
-(defn number-attempts [failed-login-store time-window-secs {:keys [email ip-address]}]
+(defn number-attempts [db failed-login-store time-window-secs {:keys [email ip-address]}]
   (let [from-date-time (dt/minus- (dt/now) (dt/seconds time-window-secs))
-        basic-formula {:created-at #(> % from-date-time)}]
-    (mc/count failed-login-store basic-formula)))
+        basic-condition {:created-at {$gt from-date-time}}] 
+    (mc/count db failed-login-store (cond-> basic-condition
+                                      email (assoc :email email)
+                                      ip-address (assoc :ip-address ip-address)))))
