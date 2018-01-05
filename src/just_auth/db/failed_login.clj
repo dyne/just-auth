@@ -32,8 +32,7 @@
 
 (defn new-attempt!
   [failed-login-store email ip-address]
-  (let [created-at (java.util.Date.)
-        id (str (java.util.UUID/randomUUID))]
+  (let [created-at (java.util.Date.)]
     (storage/store-and-create-id! failed-login-store {:email email
                                                       :created-at created-at
                                                       :ip-address ip-address})))

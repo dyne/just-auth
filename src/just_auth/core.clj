@@ -25,10 +25,11 @@
   (:require [just-auth.db 
              [account :as account]
              [password-recovery :as pr]
-             [just-auth :as auth-db]]
+             [failed-login :as fl]]
             [just-auth
              [schema :refer [HashFns
                              AuthStores
+                             EmailMessagingSchema
                              EmailSignUp
                              StoreSchema
                              EmailConfig]]
@@ -46,7 +47,7 @@
   ;; About names http://www.kalzumeus.com/2010/06/17/falsehoods-programmers-believe-about-name
   (sign-up [this name email password second-step-conf other-names])
 
-  (sign-in [this email password])
+  (sign-in [this email password args])
 
   ;; TODO: sign-out? => so far thinking of adding session data on a higher level lib
   
@@ -89,7 +90,8 @@
      failed-login-store :- StoreSchema
      account-activator :- EmailMessagingSchema
      password-recoverer :- EmailMessagingSchema
-     hash-fns :- HashFns]
+     hash-fns :- HashFns
+     throttling-config :- ThrottlingConfig]
 
   Authentication
   (send-activation-message [_ email {:keys [activation-uri]}]
@@ -131,7 +133,7 @@
                                             :password password
                                             :activation-uri activation-uri} hash-fns))
   
-  (sign-in [_ email password]
+  (sign-in [_ email password {:keys [ip-address]}]
     (if-let [account (account/fetch account-store email)]
       (if (:activated account)
         (if (account/correct-password? account-store email password (:hash-check-fn hash-fns))
@@ -140,7 +142,9 @@
            :other-names (:other-names account)}
           ;; TODO: send email?
           ;; TODO: waht to do after x amount of times? Maybe should be handled on server level?
-          (f/fail (t/locale [:error :core :wrong-pass])))
+          (do
+            (fl/new-attempt! failed-login-store email ip-address)
+            (f/fail (t/locale [:error :core :wrong-pass]))))
         (f/fail (t/locale [:error :core :not-active])))
       (f/fail (str (t/locale [:error :core :account-not-found]) email))))
 

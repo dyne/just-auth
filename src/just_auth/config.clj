@@ -1,7 +1,8 @@
 (ns just-auth.config
   (:require [environ.core :as env]))
 
-(def env-vars #{:email-config :ttl-password-recovery})
+(def env-vars #{:email-config :ttl-password-recovery
+                :throttling-config})
 
 (defn create-config []
   (select-keys env/env env-vars))
@@ -18,3 +19,6 @@
 
 (defn ttl-password-recovery [config-m]
   (clojure.edn/read-string (get-env config-m :ttl-password-recovery)))
+
+(defn throttling-config [config-m]
+  (get-env config-m :throttling-config))
