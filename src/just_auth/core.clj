@@ -32,7 +32,8 @@
                              EmailMessagingSchema
                              EmailSignUp
                              StoreSchema
-                             EmailConfig]]
+                             EmailConfig
+                             ThrottlingConfig]]
              [messaging :as m :refer [EmailMessagingSchema]]
              [util :as u]]
             [taoensso.timbre :as log]
@@ -85,7 +86,8 @@
         (send-activation-message authenticator email {:activation-uri activation-uri}))))
 
 (s/defrecord EmailBasedAuthentication
-    [account-store :-  StoreSchema
+    [db :- s/Any ;; TODO
+     account-store :-  StoreSchema
      password-recovery-store :- StoreSchema
      failed-login-store :- StoreSchema
      account-activator :- EmailMessagingSchema
@@ -134,19 +136,23 @@
                                             :activation-uri activation-uri} hash-fns))
   
   (sign-in [_ email password {:keys [ip-address]}]
-    (if-let [account (account/fetch account-store email)]
-      (if (:activated account)
-        (if (account/correct-password? account-store email password (:hash-check-fn hash-fns))
-          {:email email
-           :name (:name account)
-           :other-names (:other-names account)}
-          ;; TODO: send email?
-          ;; TODO: waht to do after x amount of times? Maybe should be handled on server level?
-          (do
-            (fl/new-attempt! failed-login-store email ip-address)
-            (f/fail (t/locale [:error :core :wrong-pass]))))
-        (f/fail (t/locale [:error :core :not-active])))
-      (f/fail (str (t/locale [:error :core :account-not-found]) email))))
+    (f/attempt-all [possible-attack (thr/throttle? db failed-login-store throttling-config email ip-address)]
+                   (if-let [account (account/fetch account-store email)]
+                     (if (:activated account)
+                       (if (account/correct-password? account-store email password (:hash-check-fn hash-fns))
+                         {:email email
+                          :name (:name account)
+                          :other-names (:other-names account)}
+                         ;; TODO: send email?
+                         ;; TODO: waht to do after x amount of times? Maybe should be handled on server level?
+                         (do
+                           (fl/new-attempt! failed-login-store email ip-address)
+                           (f/fail (t/locale [:error :core :wrong-pass]))))
+                       (f/fail (t/locale [:error :core :not-active])))
+                     (f/fail (str (t/locale [:error :core :account-not-found]) email)))
+                   (f/when-failed [e]
+                     (log/error (f/message e))
+                     e)))
 
   (activate-account [_ email {:keys [activation-link]}]
     (let [account (account/fetch-by-activation-link account-store activation-link)]
@@ -174,12 +180,14 @@
 
 (s/defn ^:always-validate new-email-based-authentication
   ;; TODO: do we need some sort of session that expires after a while? And if so should it be handled by this lib or on top of it?
-  [stores :- AuthStores
+  [db :- s/Any ;; TODO
+   stores :- AuthStores
    account-activator :- EmailMessagingSchema
    password-recoverer :- EmailMessagingSchema
    hash-fns :- HashFns]
   (s/validate just_auth.core.Authentication
-              (map->EmailBasedAuthentication {:account-store (:account-store stores)
+              (map->EmailBasedAuthentication {:db db
+                                              :account-store (:account-store stores)
                                               :password-recovery-store (:password-recovery-store stores)
                                               :password-recoverer password-recoverer
                                               :account-activator account-activator

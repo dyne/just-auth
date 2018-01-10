@@ -45,6 +45,7 @@
    })
 
 (def ThrottlingConfig
-  {:criteria [] ;; TODO can be :ip-address or :email or both or none
+  {:criteria #{(s/maybe (s/enum :email :ip-address))} 
+   :type (s/enum :block :delay)
    :time-window-secs s/Num
    :threshold s/Num})
