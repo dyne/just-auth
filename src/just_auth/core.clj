@@ -178,6 +178,16 @@
      password-recoverer :- EmailMessagingSchema]
 
   Authentication
+  (sign-up [_ name email password _ other-names]
+    "The account is already activated and email is sent"
+    (account/new-account! (:account-store account-activator)
+                              (cond-> {:name name
+                                       :email email
+                                       :password password
+                                       :activated true}
+                                other-names (assoc :other-names other-names))
+                              (:hash-fn u/sample-hash-fns)))
+  
   (send-activation-message [_ email {:keys [activation-uri]}]
     (let [activation-id (fxc.core/generate 32)
           activation-link (u/construct-link {:uri activation-uri
