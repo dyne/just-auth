@@ -21,7 +21,11 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 (ns just-auth.util
-  (:require [taoensso.timbre :as log]))
+  (:require [taoensso.timbre :as log]
+            [buddy.hashers :as hashers]))
+
+(def sample-hash-fns {:hash-fn hashers/derive
+                      :hash-check-fn hashers/check})
 
 (defn link->token [link]
   (-> link (clojure.string/split #"/") last))

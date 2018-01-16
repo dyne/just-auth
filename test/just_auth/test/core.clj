@@ -31,7 +31,6 @@
             [clj-storage.core :as storage] 
             [schema.core :as s]
             [taoensso.timbre :as log]
-            [buddy.hashers :as hashers]
             [failjure.core :as f]
             [auxiliary.translation :as t]
             [environ.core :as env]))
@@ -39,8 +38,7 @@
 (fact "Create a new email based authentication record and validate schemas"
       (let [_ (t/init (env/env :auth-translation-language))
             stores-m (storage/create-in-memory-stores ["account-store" "password-recovery-store"])
-            hash-fns {:hash-fn hashers/derive
-                      :hash-check-fn hashers/check}
+            hash-fns u/sample-hash-fns
             email-authenticator (auth-lib/new-email-based-authentication
                                  stores-m
                                  (m/new-stub-account-activator stores-m)
