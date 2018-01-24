@@ -30,34 +30,33 @@
   (reduce * (repeat n x)))
 
 ;; Inspired by https://blog.codinghorror.com/dictionary-attacks-101/
-(defn delay-in-secs? [db failed-login-store time-window-secs threshold {:keys [ip-address email] :as criteria}]
+(defn delay-in-secs? [failed-login-store time-window-secs threshold {:keys [ip-address email] :as criteria}]
   "When a account or ip have more than a thrshold of attempts return the delay in seconds until next allowed login attempt. Returns nil when no delay is required."
-  (let [number-attempts (fl/number-attempts db failed-login-store time-window-secs criteria)
-        excess (- number-attempts threshold)]
+  (let [number-attempts (fl/number-attempts failed-login-store time-window-secs criteria)
+        excess (- (log/spy number-attempts) (log/spy threshold))]
     (when (> excess 0)
       (pow 2 excess))))
 
-(defn block? [db failed-login-store time-window-secs threshold {:keys [ip-address email] :as criteria}]
+(defn block? [failed-login-store time-window-secs threshold {:keys [ip-address email] :as criteria}]
   "This function checks where there are more failed attempts than a threshold given an ip, an email, none or both. It will return true when the failed attempts with the given criteria surpass the thr."
   (when (>
-         (fl/number-attempts db failed-login-store time-window-secs criteria)
+         (fl/number-attempts failed-login-store time-window-secs criteria)
          threshold)
     true))
 
 (defn throttle?
-  [db failed-login-store throttling-config {:keys [email ip-address]}]
+  [failed-login-store throttling-config {:keys [email ip-address]}]
   "Wrapper fn that returns errors when necessary or nil when not throttling behaviour is necessary"
   (let [thr-fn (if (= :block (:type throttling-config))
                  block?
                  delay-in-secs?)
         criteria (select-keys {:email email :ip-address ip-address}
                               (:criteria throttling-config))
-        result (log/spy (thr-fn db
-                                failed-login-store
-                                (:time-window-secs throttling-config)
-                                (:threshold throttling-config)
-                                criteria))]
-    (cond  (= result true)
+        result (thr-fn failed-login-store
+                       (:time-window-secs throttling-config)
+                       (:threshold throttling-config)
+                       criteria)]
+    (cond  (= (log/spy result) true)
            (f/fail (str "Blocked access for " criteria ". Please contact the website admin."))
            (number? result)
            (f/fail (str "Suspicious behaviour for " criteria ". Retry again in " result " seconds")))))

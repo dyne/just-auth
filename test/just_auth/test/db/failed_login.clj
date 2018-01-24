@@ -54,21 +54,17 @@
                                                 (:email attempt)
                                                 (:ip-address attempt)))
                              (fact "Count the number of all failed attempts the last 10 seconds"
-                                   (fl/number-attempts (test-db/get-test-db)
-                                                       (-> stores :failed-login-store :coll)
+                                   (fl/number-attempts (-> stores :failed-login-store)
                                                        10
                                                        {}) => (count failed-attempts)
 
-                                   (fl/number-attempts (test-db/get-test-db)
-                                                       (-> stores :failed-login-store :coll)
+                                   (fl/number-attempts (-> stores :failed-login-store)
                                                        10
                                                        {:email "email-1"}) => (count (filter (comp (partial = "email-1") :email) failed-attempts))
 
-                                   (fl/number-attempts (test-db/get-test-db)
-                                                       (-> stores :failed-login-store :coll)
+                                   (fl/number-attempts (-> stores :failed-login-store)
                                                        10
                                                        {:ip-address "ip-1"})  => (count (filter (comp (partial = "ip-1") :ip-address) failed-attempts))
-                                   (fl/number-attempts (test-db/get-test-db)
-                                                       (-> stores :failed-login-store :coll)
+                                   (fl/number-attempts (-> stores :failed-login-store)
                                                        0
                                                        {}) => 0))))

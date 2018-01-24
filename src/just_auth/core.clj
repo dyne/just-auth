@@ -136,7 +136,8 @@
                                             :activation-uri activation-uri} hash-fns))
   
   (sign-in [_ email password {:keys [ip-address]}]
-    (f/attempt-all [possible-attack (thr/throttle? db failed-login-store throttling-config email ip-address)]
+    (f/attempt-all [possible-attack (thr/throttle? db failed-login-store throttling-config {:email email
+                                                                                            :ip-address ip-address})]
                    (if-let [account (account/fetch account-store email)]
                      (if (:activated account)
                        (if (account/correct-password? account-store email password (:hash-check-fn hash-fns))
