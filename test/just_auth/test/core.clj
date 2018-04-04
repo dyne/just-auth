@@ -67,7 +67,7 @@
                   (:activated (account/fetch (:account-store stores-m) email)) => false
                   (fact "Before activation one can't sign in"
                         (f/failed? (auth-lib/sign-in email-authenticator email password)) => true
-                        (:message (log/spy (auth-lib/sign-in email-authenticator email password))) => "The account needs to be activated first")
+                        (:message (auth-lib/sign-in email-authenticator email password)) => "The account needs to be activated first")
                   (fact "Activate account"
                         (let [activation-link (:activation-link account-created)]
                           (f/ok? (auth-lib/activate-account email-authenticator email
