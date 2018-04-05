@@ -17,17 +17,41 @@ This Clojure software is a simple two factor authentication library. It contains
 
 You can create an email authenticator simply by calling 
 
+```clojure
+(let [stores-m (storage/create-stores ["account-store" "password-recovery-store"])
+      email-conf {:email-server "server"
+                  :email-user "user"
+                  :email-pass "pass"
+                  :email-address "email"}]
+  (email-based-authentication stores  email-config))
 
+```
+where create-stores creates two document-like collections like for example [here](https://github.com/Commonfare-net/clj-storage/blob/master/src/clj_storage/db/mongo.clj#L88)
+
+If you want to have more influence on the authenticator, like for example change the hashing functions the `new-email-based-authentication` constructor can be used. 
 
 #### Data encryption
-For the data encryption the hash and checking functions can be passed as arguments 
+For the data encryption the hash and checking functions can be passed as arguments like
 
-` {:hash-fn clojure.lang.Fn
-   :hash-check-fn clojure.lang.Fn} `
+```clojure
+{:hash-fn clojure.lang.Fn
+ :hash-check-fn clojure.lang.Fn}
 
-otherwise the default will be used xo
+```
+
+otherwise it will default to the `derive` and `check` functions from the `buddy/buddy-hashers` lib.
 
 ### Just to try out (no configuration needed)
+
+The lib can be used without the actual email service for development. To do so please use
+
+```clojure
+(let [stores (storage/create-in-memory-stores ["account-store" "password-recovery-store"])
+      emails (atom [])]
+    (new-stub-email-based-authentication stores emails))
+
+```
+You can use real stores or in memory ones like [here](https://github.com/Commonfare-net/clj-storage/blob/master/src/clj_storage/core.clj#L74) and instead of a real mail server an atom is used.
 
 ### Run all tests
 
@@ -47,7 +71,7 @@ or use the alias
 
 `lein test-basic`
 
-The just auth lib is Copyright (C) 2017 by the Dyne.org Foundation, Amsterdam
+The just auth lib is Copyright (C) 2017-2018 by the Dyne.org Foundation, Amsterdam
 
 The development is lead by Aspasia Beneti <aspra@dyne.org>
 
