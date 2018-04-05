@@ -44,3 +44,9 @@
    :activation-uri s/Str ;; TODO URI
    })
 
+(def EmailConfig
+  {:email-server s/Str 
+   :email-user s/Str
+   :email-pass s/Str
+   :email-address s/Str})
+

@@ -30,7 +30,8 @@
                              AuthStores
                              EmailMessagingSchema
                              EmailSignUp
-                             StoreSchema]]
+                             StoreSchema
+                             EmailConfig]]
              [messaging :as m]
              [util :as u]]
             [taoensso.timbre :as log]
@@ -172,6 +173,13 @@
                                               :password-recoverer password-recoverer
                                               :account-activator account-activator
                                               :hash-fns hash-fns})))
+(s/defn ^:always-validate email-based-authentication
+  [stores :- AuthStores
+   email-configuration :- EmailConfig]
+  (new-email-based-authentication stores
+                                  (m/new-account-activator email-configuration (:account-store stores))
+                                  (m/new-password-recoverer email-configuration (:password-recovery-store stores))
+                                  u/sample-hash-fns))
 
 (s/defrecord StubEmailBasedAuthentication
     [account-activator :- EmailMessagingSchema
