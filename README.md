@@ -18,6 +18,9 @@ This Clojure software is a simple two factor authentication library. It contains
 You can create an email authenticator simply by calling 
 
 ```clojure
+
+;; where create-stores is a function that creates two document-like collections with the respective names.
+;; An example can be found https://github.com/Commonfare-net/clj-storage/blob/b71bd9379a99a85c2c923c2d4b0b45163399a6f6/src/clj_storage/db/mongo.clj#L88)
 (let [stores-m (storage/create-stores ["account-store" "password-recovery-store"])
       email-conf {:email-server "server"
                   :email-user "user"
@@ -26,9 +29,8 @@ You can create an email authenticator simply by calling
   (email-based-authentication stores  email-config))
 
 ```
-where create-stores creates two document-like collections like for example [here](https://github.com/Commonfare-net/clj-storage/blob/master/src/clj_storage/db/mongo.clj#L88)
 
-If you want to have more influence on the authenticator, like for example change the hashing functions the `new-email-based-authentication` constructor can be used. 
+If you want to have more influence on the authenticator, like for example change the hashing functions the `new-email-based-authentication` constructor can be used like shown in this [test](https://github.com/Commonfare-net/just-auth/blob/8e7144e768e1e8315d6a4f531e426127d8d96c65/test/just_auth/test/core.clj#L42). 
 
 #### Data encryption
 For the data encryption the hash and checking functions can be passed as arguments like
@@ -39,19 +41,21 @@ For the data encryption the hash and checking functions can be passed as argumen
 
 ```
 
-otherwise it will default to the `derive` and `check` functions from the `buddy/buddy-hashers` lib.
+otherwise it will default to the `derive` and `check` functions from the `buddy/buddy-hashers` [lib](https://funcool.github.io/buddy-hashers/latest/).
 
 ### Just to try out (no configuration needed)
 
 The lib can be used without the actual email service for development. To do so please use
 
 ```clojure
+;; One can use real stores or in memory ones like for example https://github.com/Commonfare-net/clj-storage/blob/b71bd9379a99a85c2c923c2d4b0b45163399a6f6/src/clj_storage/core.clj#L74)
+;; Instead of a real mail server an atom is used.
+
 (let [stores (storage/create-in-memory-stores ["account-store" "password-recovery-store"])
       emails (atom [])]
     (new-stub-email-based-authentication stores emails))
 
 ```
-You can use real stores or in memory ones like [here](https://github.com/Commonfare-net/clj-storage/blob/master/src/clj_storage/core.clj#L74) and instead of a real mail server an atom is used.
 
 ### Run all tests
 
@@ -65,11 +69,15 @@ lein midje
 
 Some of the tests are marked as slow. If you want to avoid running them you cn either
 
-`lein midje :filter -slow`
+```
+lein midje :filter -slow
+```
 
 or use the alias
 
-`lein test-basic`
+```
+lein test-basic
+```
 
 The just auth lib is Copyright (C) 2017-2018 by the Dyne.org Foundation, Amsterdam
 
