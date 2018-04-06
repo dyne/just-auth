@@ -23,11 +23,9 @@
 
 (ns just-auth.schema
   (:require [clj-storage.core :refer [Store]]
-            [just-auth.messaging :refer [Email]]
             [schema.core :as s]))
 
 (def StoreSchema clj_storage.core.Store)
-(def EmailMessagingSchema just_auth.messaging.Email)
 
 (s/defschema HashFns
   {:hash-fn clojure.lang.Fn
@@ -43,4 +41,10 @@
    :password s/Str
    :activation-uri s/Str ;; TODO URI
    })
+
+(def EmailConfig
+  {:email-server s/Str 
+   :email-user s/Str
+   :email-pass s/Str
+   :email-address s/Str})
 

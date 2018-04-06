@@ -28,10 +28,10 @@
             [just-auth
              [schema :refer [HashFns
                              AuthStores
-                             EmailMessagingSchema
                              EmailSignUp
-                             StoreSchema]]
-             [messaging :as m]
+                             StoreSchema
+                             EmailConfig]]
+             [messaging :as m :refer [EmailMessagingSchema]]
              [util :as u]]
             [taoensso.timbre :as log]
             [schema.core :as s]
@@ -172,6 +172,13 @@
                                               :password-recoverer password-recoverer
                                               :account-activator account-activator
                                               :hash-fns hash-fns})))
+(s/defn ^:always-validate email-based-authentication
+  [stores :- AuthStores
+   email-configuration :- EmailConfig]
+  (new-email-based-authentication stores
+                                  (m/new-account-activator email-configuration (:account-store stores))
+                                  (m/new-password-recoverer email-configuration (:password-recovery-store stores))
+                                  u/sample-hash-fns))
 
 (s/defrecord StubEmailBasedAuthentication
     [account-activator :- EmailMessagingSchema

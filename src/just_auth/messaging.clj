@@ -28,7 +28,9 @@
              [password-recovery :as password-recovery]]
             [taoensso.timbre :as log]
             [clj-storage.db.mongo :as mongo]
-            [auxiliary.translation :as t]))
+            [auxiliary.translation :as t]
+            [schema.core :as s]
+            [just-auth.schema :refer [EmailConfig StoreSchema]]))
 
 (defn postal-basic-conf [conf]
   {:host (:email-server conf)
@@ -41,6 +43,8 @@
   "A generic function that sends an email and updates db fields"
   (email-and-update! [this email link]))
 
+(def EmailMessagingSchema just_auth.messaging.Email)
+
 (defn- send-email [conf email subject body]
   (postal/send-message 
    (postal-basic-conf conf)
@@ -49,11 +53,11 @@
     :subject subject
     :body body}))
 
-(defrecord AccountActivator [conf account-store]
+(defrecord AccountActivator [email-conf account-store]
   Email
   (email-and-update! [_ email activation-link]
     (let [email-response (if (account/update-activation-link! account-store email activation-link)
-                           (send-email conf email
+                           (send-email email-conf email
                                        (t/locale [:email :account-activator :title])
                                        (str (t/locale [:email :account-activator :content]) activation-link))
                            false)]
@@ -61,11 +65,17 @@
         email-response
         false))))
 
-(defrecord PasswordRecoverer [conf password-recovery-store]
+(s/defn ^:always-validate new-account-activator
+  [email-conf :- EmailConfig
+   account-store :- StoreSchema]
+  (map->AccountActivator {:email-conf email-conf
+                          :account-store account-store}))
+
+(defrecord PasswordRecoverer [email-conf password-recovery-store]
   Email
   (email-and-update! [_ email password-recovery-link]
     (let [email-response       (if (password-recovery/new-entry! password-recovery-store email password-recovery-link)
-                                 (send-email conf email
+                                 (send-email email-conf email
                                              (t/locale [:email :password-recoverer :title])
                                              (str (t/locale [:email :password-recoverer :content1]) email (t/locale [:email :password-recoverer :content2])  password-recovery-link (t/locale [:email :password-recoverer :content3])))
                                  false)]
@@ -78,6 +88,12 @@
          (merge link-map {:email email
                           ;; the SUCCESS is needed to imitate poster responses
                           :error :SUCCESS})))
+
+(s/defn ^:always-validate new-password-recoverer
+  [email-conf :- EmailConfig
+   password-recovery-store :- StoreSchema]
+  (map->PasswordRecoverer {:email-conf email-conf
+                           :password-recovery-store password-recovery-store}))
 
 (defrecord StubAccountActivator [emails account-store]
   Email
