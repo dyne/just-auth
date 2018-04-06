@@ -43,6 +43,8 @@
   "A generic function that sends an email and updates db fields"
   (email-and-update! [this email link]))
 
+(def EmailMessagingSchema just_auth.messaging.Email)
+
 (defn- send-email [conf email subject body]
   (postal/send-message 
    (postal-basic-conf conf)

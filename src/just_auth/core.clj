@@ -28,11 +28,10 @@
             [just-auth
              [schema :refer [HashFns
                              AuthStores
-                             EmailMessagingSchema
                              EmailSignUp
                              StoreSchema
                              EmailConfig]]
-             [messaging :as m]
+             [messaging :as m :refer [EmailMessagingSchema]]
              [util :as u]]
             [taoensso.timbre :as log]
             [schema.core :as s]
