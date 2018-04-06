@@ -13,7 +13,11 @@ This Clojure software is a simple two factor authentication library. It contains
 
 ## How to use the library
 
-### For production
+### Use the two factor email based authenticator
+
+```clojure
+(require '[just-auth.core :as auth-lib])
+```
 
 You can create an email authenticator simply by calling 
 
@@ -25,8 +29,24 @@ You can create an email authenticator simply by calling
       email-conf {:email-server "server"
                   :email-user "user"
                   :email-pass "pass"
-                  :email-address "email"}]
-  (email-based-authentication stores  email-config))
+                  :email-address "email"}
+      authenticator (email-based-authentication stores  email-config)
+      ;; sign-up
+      account (auth-lib/sign-up email-authenticator
+                                "Some name"
+                                "email@mail.com"
+                                "password"
+                                {:activation-uri "http://host.org"}
+                                ["nickname"])]
+   ;; activate
+   (auth-lib/activate-account email-authenticator
+                              {:activation-link (:activation-link account)})
+   ;; sign-in
+   (auth-lib/sign-in email-authenticator
+                     "email@mail.com"
+                     "password"))
+
+   ;; The full protocol can be found at https://github.com/Commonfare-net/just-auth/blob/099be6a4b569bfe8b6f8629ae2383fe380e5c2bd/src/just_auth/core.clj#L42)
 
 ```
 
@@ -42,6 +62,10 @@ For the data encryption the hash and checking functions can be passed as argumen
 ```
 
 otherwise it will default to the `derive` and `check` functions from the `buddy/buddy-hashers` [lib](https://funcool.github.io/buddy-hashers/latest/).
+
+#### Error messaging
+
+Instead of throwing exceptions the lib uses the monadic error utilities [failjure](https://github.com/adambard/failjure)
 
 ### Just to try out (no configuration needed)
 
