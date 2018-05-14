@@ -58,5 +58,8 @@
                    :repl-options {:init-ns just-auth.core}
                    :plugins [[lein-midje "3.1.3"]]}}
 
+  :deploy-repositories [["releases" {:url "https://clojars.org/repo"
+                                   :creds :gpg}]]
+
   ;; TODO: do we need this?
   :plugins [[lein-environ "1.0.0"]])
