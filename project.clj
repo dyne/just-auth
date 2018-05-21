@@ -7,31 +7,32 @@
             :year 2017
             :key "gpl-3.0"}
 
-  :dependencies [[org.clojure/clojure "1.8.0"]
+  :dependencies [[org.clojure/clojure "1.9.0"]
 
                  ;; logs
                  [com.taoensso/timbre "4.10.0"]
 
                  ;; TODO: probably should come from external project using the lib: hashers
-                 [buddy/buddy-hashers "1.3.0"] 
+                 [buddy/buddy-hashers "1.3.0"
+                  :exclusions [org.bouncycastle/bcprov-jdk15]]
                  
                  ;; fxc secret sharing protocol
                  [org.clojars.dyne/fxc "0.5.0"]
 
                  ;; storage lib
-                 [org.clojars.dyne/clj-storage "0.5.0"]
+                 [org.clojars.dyne/clj-storage "0.5.1"]
 
                  ;; config etc.
                  [org.clojars.dyne/auxiliary "0.4.0"]
 
                  ;; Data validation
-                 [prismatic/schema "1.1.7"]
+                 [prismatic/schema "1.1.9"]
 
                  ;; email
                  [com.draines/postal "2.0.2"]
 
                  ;;error handling
-                 [failjure "1.2.0"]
+                 [failjure "1.3.0"]
 
                  ;; env variables for configuration
                  [environ "1.1.0"]]
@@ -54,7 +55,7 @@
   
   :aliases {"test-basic" ["midje" ":config" "test-resources/fast-tests.config"]}
   
-  :profiles {:dev {:dependencies [[midje "1.9.0"]]
+  :profiles {:dev {:dependencies [[midje "1.9.1"]]
                    :repl-options {:init-ns just-auth.core}
                    :plugins [[lein-midje "3.1.3"]]}}
 
