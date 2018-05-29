@@ -36,7 +36,8 @@
             [environ.core :as env]))
 
 (fact "Create a new email based authentication record and validate schemas"
-      (let [_ (t/init (env/env :auth-translation-language))
+      (let [;; TODO: This can be removed if the high level constructors are used.
+            _ (t/init (env/env :auth-translation-language))
             stores-m (storage/create-in-memory-stores ["account-store" "password-recovery-store"])
             hash-fns u/sample-hash-fns
             email-authenticator (auth-lib/new-email-based-authentication
@@ -75,6 +76,6 @@
                 (fact "We can now log in"
                       (f/ok? (auth-lib/sign-in email-authenticator email password)) => true)
 
-                  (fact "Reset password and sign in with new password"
-                        ;; TODO expiration
-                        ))))))
+                (fact "Reset password and sign in with new password"
+                      ;; TODO expiration
+                      )))))
