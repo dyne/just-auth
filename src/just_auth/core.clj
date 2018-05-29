@@ -99,7 +99,7 @@
                                                    :email email})]
             (if-not (m/email-and-update! account-activator email activation-link)
               (f/fail (t/locale [:error :core :not-sent]))
-              account)))
+              (merge account {:activation-link activation-link}))))
         ;; TODO: send an email to that email
         (f/fail (str (t/locale [:error :core :account-not-found]) email)))))
 
