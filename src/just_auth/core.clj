@@ -37,7 +37,9 @@
             [schema.core :as s]
             [fxc.core :as fxc]
             [failjure.core :as f]
-            [auxiliary.translation :as t]))
+            [auxiliary.translation :as t]
+            [auxiliary.translation :as translation]
+            [environ.core :as env]))
 
 (defprotocol Authentication
   ;; About names http://www.kalzumeus.com/2010/06/17/falsehoods-programmers-believe-about-name
@@ -99,7 +101,7 @@
                                                    :email email})]
             (if-not (m/email-and-update! account-activator email activation-link)
               (f/fail (t/locale [:error :core :not-sent]))
-              account)))
+              (merge account {:activation-link activation-link}))))
         ;; TODO: send an email to that email
         (f/fail (str (t/locale [:error :core :account-not-found]) email)))))
 
@@ -175,6 +177,10 @@
 (s/defn ^:always-validate email-based-authentication
   [stores :- AuthStores
    email-configuration :- EmailConfig]
+  ;; Make sure the transation is loaded
+  (when (empty? @translation/translation)
+    (translation/init (env/env :auth-translation-fallback)
+                      (env/env :auth-translation-language)))
   (new-email-based-authentication stores
                                   (m/new-account-activator email-configuration (:account-store stores))
                                   (m/new-password-recoverer email-configuration (:password-recovery-store stores))
@@ -212,5 +218,9 @@
       (m/email-and-update! password-recoverer email password-reset-link))))
 
 (defn new-stub-email-based-authentication [stores emails]
+  ;; Make sure the transation is loaded
+  (when (empty? @translation/translation)
+    (translation/init (env/env :auth-translation-fallback)
+                      (env/env :auth-translation-language)))
   (map->StubEmailBasedAuthentication {:account-activator (m/new-stub-account-activator stores emails)
                                       :password-recoverer (m/new-stub-password-recoverer stores emails)}))
