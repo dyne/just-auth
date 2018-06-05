@@ -67,5 +67,8 @@
 (defn remove-flag! [account-store email flag]
   (storage/update! account-store email (fn [account] (update account :flags #(remove #{flag} %)))))
 
-(defn list [account-store]
-  (storage/query account-store {}))
+(defn list-accounts [account-store & params]
+  ([]
+   (list-accounts {}))
+  ([params]
+   (storage/query account-store params)))

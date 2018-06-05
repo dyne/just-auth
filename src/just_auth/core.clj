@@ -56,8 +56,9 @@
 
   (de-activate-account [this email password])
 
-  (reset-password [this email old-password new-password second-step-conf]))
+  (reset-password [this email old-password new-password second-step-conf])
 
+  (list-accounts [this params]))
 
 (s/defn ^:always-validate sign-up-with-email
   [authenticator :- just_auth.core.Authentication
@@ -157,7 +158,10 @@
         (account/update-password! account-store email new-password (:hash-fn hash-fns))
         ;; TODO: send email?
         (f/fail (t/locale [:error :core :wrong-pass])))
-      (f/fail (t/locale [:error :core :expired-link])))))
+      (f/fail (t/locale [:error :core :expired-link]))))
+
+  (list-accounts [_ params]
+    (account/list-accounts params)))
 
 
 (s/defn ^:always-validate new-email-based-authentication
