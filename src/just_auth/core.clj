@@ -24,7 +24,8 @@
 (ns just-auth.core
   (:require [just-auth.db 
              [account :as account]
-             [password-recovery :as pr]]
+             [password-recovery :as pr]
+             [just-auth :as auth-db]]
             [just-auth
              [schema :refer [HashFns
                              AuthStores
@@ -161,7 +162,7 @@
       (f/fail (t/locale [:error :core :expired-link]))))
 
   (list-accounts [_ params]
-    (account/list-accounts params)))
+    (account/list-accounts account-store params)))
 
 
 (s/defn ^:always-validate new-email-based-authentication
@@ -213,7 +214,10 @@
                                                  :token password-reset-id
                                                  :email email
                                                  :action "reset-password"})]
-      (m/email-and-update! password-recoverer email password-reset-link))))
+      (m/email-and-update! password-recoverer email password-reset-link)))
+
+  (list-accounts [_ params]
+    (account/list-accounts (-> account-activator :account-store) params)))
 
 (defn new-stub-email-based-authentication [stores emails]
   (map->StubEmailBasedAuthentication {:account-activator (m/new-stub-account-activator stores emails)
