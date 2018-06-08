@@ -3,7 +3,7 @@
 ;; part of Decentralized Citizen Engagement Technologies (D-CENT)
 ;; R&D funded by the European Commission (FP7/CAPS 610349)
 
-;; Copyright (C) 2017 Dyne.org foundation
+;; Copyright (C) 2017-2018 Dyne.org foundation
 
 ;; Sourcecode designed, written and maintained by
 ;; Aspasia Beneti  <aspra@dyne.org>
@@ -24,7 +24,8 @@
 (ns just-auth.core
   (:require [just-auth.db 
              [account :as account]
-             [password-recovery :as pr]]
+             [password-recovery :as pr]
+             [just-auth :as auth-db]]
             [just-auth
              [schema :refer [HashFns
                              AuthStores
@@ -47,7 +48,7 @@
 
   (sign-in [this email password])
 
-  ;; TODO: sign-out?
+  ;; TODO: sign-out? => so far thinking of adding session data on a higher level lib
   
   ;; TODO: maybe add password?
   (activate-account [this email second-step-conf])
@@ -58,8 +59,9 @@
 
   (de-activate-account [this email password])
 
-  (reset-password [this email old-password new-password second-step-conf]))
+  (reset-password [this email old-password new-password second-step-conf])
 
+  (list-accounts [this params]))
 
 (s/defn ^:always-validate sign-up-with-email
   [authenticator :- just_auth.core.Authentication
@@ -159,7 +161,10 @@
         (account/update-password! account-store email new-password (:hash-fn hash-fns))
         ;; TODO: send email?
         (f/fail (t/locale [:error :core :wrong-pass])))
-      (f/fail (t/locale [:error :core :expired-link])))))
+      (f/fail (t/locale [:error :core :expired-link]))))
+
+  (list-accounts [_ params]
+    (account/list-accounts account-store params)))
 
 
 (s/defn ^:always-validate new-email-based-authentication
@@ -215,7 +220,10 @@
                                                  :token password-reset-id
                                                  :email email
                                                  :action "reset-password"})]
-      (m/email-and-update! password-recoverer email password-reset-link))))
+      (m/email-and-update! password-recoverer email password-reset-link)))
+
+  (list-accounts [_ params]
+    (account/list-accounts (-> account-activator :account-store) params)))
 
 (defn new-stub-email-based-authentication [stores emails]
   ;; Make sure the transation is loaded
