@@ -33,7 +33,7 @@
 (defn delay-in-secs? [failed-login-store time-window-secs threshold {:keys [ip-address email] :as criteria}]
   "When a account or ip have more than a thrshold of attempts return the delay in seconds until next allowed login attempt. Returns nil when no delay is required."
   (let [number-attempts (fl/number-attempts failed-login-store time-window-secs criteria)
-        excess (- (log/spy number-attempts) (log/spy threshold))]
+        excess (- number-attempts threshold)]
     (when (> excess 0)
       (pow 2 excess))))
 
@@ -56,7 +56,7 @@
                        (:time-window-secs throttling-config)
                        (:threshold throttling-config)
                        criteria)]
-    (cond  (= (log/spy result) true)
+    (cond  (= result true)
            (f/fail (str "Blocked access for " criteria ". Please contact the website admin."))
            (number? result)
            (f/fail (str "Suspicious behaviour for " criteria ". Retry again in " result " seconds")))))

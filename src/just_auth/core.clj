@@ -28,14 +28,14 @@
              [failed-login :as fl]]
             [just-auth
              [schema :refer [HashFns
-                             AuthStores
-                             EmailMessagingSchema
+                             AuthStores 
                              EmailSignUp
                              StoreSchema
                              EmailConfig
                              ThrottlingConfig]]
              [messaging :as m :refer [EmailMessagingSchema]]
-             [util :as u]]
+             [util :as u]
+             [throttling :as thr]]
             [taoensso.timbre :as log]
             [schema.core :as s]
             [fxc.core :as fxc]
