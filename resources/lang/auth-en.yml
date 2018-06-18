@@ -17,7 +17,7 @@ error:
     already-active: "This account is already active"
     account-not-found: "No account found for email "
     password-already-sent: "A password recovery request has already been sent."
-    worng-pass: "Wrong username and/or password"
+    wrong-pass: "Wrong username and/or password"
     not-active: "The account needs to be activated first"
     not-matching-code: "The activation code does not match the email."
     activation-not-found: "No account found for activation link "

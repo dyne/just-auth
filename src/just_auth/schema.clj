@@ -33,7 +33,7 @@
 
 (def AuthStores {:account-store StoreSchema
                  :password-recovery-store StoreSchema
-                 :failed-login StoreSchema})
+                 :failed-login-store StoreSchema})
 
 (def EmailSignUp
   {:name s/Str

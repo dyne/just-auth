@@ -85,9 +85,29 @@
                               (:hash-fn hash-fns))
         (send-activation-message authenticator email {:activation-uri activation-uri}))))
 
+(s/defn attempt-sign-in
+  [{:keys [failed-login-store account-store hash-fns throttling-config email password ip-address]}]
+  (f/attempt-all [possible-attack (thr/throttle? failed-login-store throttling-config {:email email
+                                                                                       :ip-address ip-address})]
+                 (if-let [account (account/fetch account-store email)]
+                   (if (:activated account)
+                     (if (account/correct-password? account-store email password (:hash-check-fn hash-fns))
+                       {:email email
+                        :name (:name account)
+                        :other-names (:other-names account)}
+                       ;; TODO: send email?
+                       ;; TODO: waht to do after x amount of times? Maybe should be handled on server level?
+                       (do
+                         (fl/new-attempt! failed-login-store email ip-address)
+                         (f/fail (t/locale [:error :core :wrong-pass]))))
+                     (f/fail (t/locale [:error :core :not-active])))
+                   (f/fail (str (t/locale [:error :core :account-not-found]) email)))
+                 (f/when-failed [e]
+                   (log/error (f/message e))
+                   e)))
+
 (s/defrecord EmailBasedAuthentication
-    [db :- s/Any ;; TODO
-     account-store :-  StoreSchema
+    [account-store :-  StoreSchema
      password-recovery-store :- StoreSchema
      failed-login-store :- StoreSchema
      account-activator :- EmailMessagingSchema
@@ -136,24 +156,13 @@
                                             :activation-uri activation-uri} hash-fns))
   
   (sign-in [_ email password {:keys [ip-address]}]
-    (f/attempt-all [possible-attack (thr/throttle? db failed-login-store throttling-config {:email email
-                                                                                            :ip-address ip-address})]
-                   (if-let [account (account/fetch account-store email)]
-                     (if (:activated account)
-                       (if (account/correct-password? account-store email password (:hash-check-fn hash-fns))
-                         {:email email
-                          :name (:name account)
-                          :other-names (:other-names account)}
-                         ;; TODO: send email?
-                         ;; TODO: waht to do after x amount of times? Maybe should be handled on server level?
-                         (do
-                           (fl/new-attempt! failed-login-store email ip-address)
-                           (f/fail (t/locale [:error :core :wrong-pass]))))
-                       (f/fail (t/locale [:error :core :not-active])))
-                     (f/fail (str (t/locale [:error :core :account-not-found]) email)))
-                   (f/when-failed [e]
-                     (log/error (f/message e))
-                     e)))
+    (attempt-sign-in {:failed-login-store failed-login-store
+                      :account-store account-store
+                      :hash-fns hash-fns
+                      :throttling-config throttling-config
+                      :email email
+                      :password password
+                      :ip-address ip-address}))
 
   (activate-account [_ email {:keys [activation-link]}]
     (let [account (account/fetch-by-activation-link account-store activation-link)]
@@ -181,21 +190,23 @@
 
 (s/defn ^:always-validate new-email-based-authentication
   ;; TODO: do we need some sort of session that expires after a while? And if so should it be handled by this lib or on top of it?
-  [db :- s/Any ;; TODO
-   stores :- AuthStores
+  [stores :- AuthStores
    account-activator :- EmailMessagingSchema
    password-recoverer :- EmailMessagingSchema
-   hash-fns :- HashFns]
+   hash-fns :- HashFns
+   throttling-config :- ThrottlingConfig]
   (s/validate just_auth.core.Authentication
-              (map->EmailBasedAuthentication {:db db
-                                              :account-store (:account-store stores)
+              (map->EmailBasedAuthentication {:account-store (:account-store stores)
                                               :password-recovery-store (:password-recovery-store stores)
+                                              :failed-login-store (:failed-login-store stores)
                                               :password-recoverer password-recoverer
                                               :account-activator account-activator
-                                              :hash-fns hash-fns})))
+                                              :hash-fns hash-fns
+                                              :throttling-config throttling-config})))
 (s/defn ^:always-validate email-based-authentication
   [stores :- AuthStores
-   email-configuration :- EmailConfig]
+   email-configuration :- EmailConfig
+   throttling-config :- ThrottlingConfig]
   ;; Make sure the transation is loaded
   (when (empty? @translation/translation)
     (translation/init (env/env :auth-translation-fallback)
@@ -203,23 +214,16 @@
   (new-email-based-authentication stores
                                   (m/new-account-activator email-configuration (:account-store stores))
                                   (m/new-password-recoverer email-configuration (:password-recovery-store stores))
-                                  u/sample-hash-fns))
+                                  u/sample-hash-fns
+                                  throttling-config))
 
+;; This is meant for an implementation that doesnt use the email service but an atom instead
 (s/defrecord StubEmailBasedAuthentication
     [account-activator :- EmailMessagingSchema
-     password-recoverer :- EmailMessagingSchema]
-
+     password-recoverer :- EmailMessagingSchema
+     failed-login-store :- StoreSchema
+     throttling-config :- ThrottlingConfig]
   Authentication
-  (sign-up [_ name email password _ other-names]
-    "The account is already activated and email is sent"
-    (account/new-account! (:account-store account-activator)
-                              (cond-> {:name name
-                                       :email email
-                                       :password password
-                                       :activated true}
-                                other-names (assoc :other-names other-names))
-                              (:hash-fn u/sample-hash-fns)))
-  
   (send-activation-message [_ email {:keys [activation-uri]}]
     (let [activation-id (fxc.core/generate 32)
           activation-link (u/construct-link {:uri activation-uri
@@ -227,7 +231,28 @@
                                              :token activation-id
                                              :email email})]
       (m/email-and-update! account-activator email activation-link)))
+  
+  (sign-up [this name email password second-step-conf other-names]
+    (account/new-account! (:account-store account-activator)
+                          (cond-> {:name name
+                                   :email email
+                                   :password password}
+                            other-names (assoc :other-names other-names))
+                          (:hash-fn u/sample-hash-fns))
+    (send-activation-message this email second-step-conf))
 
+  (sign-in [_ email password {:keys [ip-address]}] 
+    (attempt-sign-in {:failed-login-store failed-login-store
+                      :account-store (:account-store account-activator)
+                      :hash-fns u/sample-hash-fns
+                      :throttling-config throttling-config
+                      :email email
+                      :password password
+                      :ip-address ip-address}))
+
+  (activate-account [_ email {:keys [activation-link]}]
+    (account/activate! (:account-store account-activator) email))
+  
   (send-password-reset-message [_ email {:keys [reset-uri]}]
     (let [password-reset-id (fxc.core/generate 32)
           password-reset-link (u/construct-link {:uri reset-uri
@@ -239,10 +264,13 @@
   (list-accounts [_ params]
     (account/list-accounts (-> account-activator :account-store) params)))
 
-(defn new-stub-email-based-authentication [stores emails]
+(defn new-stub-email-based-authentication [stores emails throttling-config]
   ;; Make sure the transation is loaded
   (when (empty? @translation/translation)
     (translation/init (env/env :auth-translation-fallback)
                       (env/env :auth-translation-language)))
   (map->StubEmailBasedAuthentication {:account-activator (m/new-stub-account-activator stores emails)
-                                      :password-recoverer (m/new-stub-password-recoverer stores emails)}))
+                                      :password-recoverer (m/new-stub-password-recoverer stores emails)
+                                      :failed-login-store (:failed-login-store stores)
+                                      :throttling-config throttling-config}
+                                     ))
