@@ -32,8 +32,8 @@
   [failed-login-store email ip-address]
   (let [created-at (java.util.Date.)]
     (storage/store-and-create-id! failed-login-store {:email email
-                                                         :created-at created-at
-                                                         :ip-address ip-address})))
+                                                      :created-at created-at
+                                                      :ip-address ip-address})))
 
 (defn number-attempts [failed-login-store time-window-secs {:keys [email ip-address] :as formula}]
   (let [from-date-time (dt/minus- (dt/now) (dt/seconds time-window-secs))]
