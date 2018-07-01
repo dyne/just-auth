@@ -46,6 +46,7 @@
 (def EmailMessagingSchema just_auth.messaging.Email)
 
 (defn- send-email [conf email subject body]
+  (assert (:email-address conf) "No :email-address found in the mail config")
   (postal/send-message 
    (postal-basic-conf conf)
    {:from (:email-address conf)

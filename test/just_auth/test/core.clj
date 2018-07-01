@@ -27,55 +27,76 @@
              [schema :as schema]
              [messaging :as m]
              [util :as u]]
-            [just-auth.db.account :as account]
-            [clj-storage.core :as storage] 
+            [just-auth.db
+             [account :as account]
+             [just-auth :as auth-db]]
             [schema.core :as s]
             [taoensso.timbre :as log]
+            [buddy.hashers :as hashers]
             [failjure.core :as f]
             [auxiliary.translation :as t]
-            [environ.core :as env]))
+            [environ.core :as env]
+            [clj-storage.test.db.test-db :as test-db]))
 
-(fact "Create a new email based authentication record and validate schemas"
-      (let [_ (t/init (env/env :auth-translation-language))
-            stores-m (storage/create-in-memory-stores ["account-store" "password-recovery-store"])
-            hash-fns u/sample-hash-fns
-            email-authenticator (auth-lib/new-email-based-authentication
-                                 stores-m
-                                 (m/new-stub-account-activator stores-m)
-                                 (m/new-stub-password-recoverer stores-m)
-                                 hash-fns)]
+(fact "Can sign up using the real authenticator implementation and a real db"
+      (let [_ (test-db/setup-db)
+            db (test-db/get-test-db)
+            stores-m (auth-db/create-auth-stores db)
+            email-authenticator (auth-lib/email-based-authentication stores-m
+                                                                     {:email-server "server"
+                                                                      :email-user "user"
+                                                                      :email-address "address"
+                                                                      :email-pass "pass"}
+                                                                     {:criteria #{:email}
+                                                                      :type :block
+                                                                      :time-window-secs 10
+                                                                      :threshold 10})
+            attempt (auth-lib/sign-in (log/spy email-authenticator) 
+                                      "test@mail.com"
+                                      "password"
+                                      {})]
+        (f/failed? attempt) => true
+        (:message attempt) => "No account found for email test@mail.com"))
 
-        (f/ok? email-authenticator) => truthy
-        
-        (s/validate schema/AuthStores stores-m) => truthy
+(facts "Some basic core behaviour tested using the stub implementation."
+       (let [stores-m (auth-db/create-in-memory-stores)
+             hash-fns u/sample-hash-fns
+             email-authenticator (auth-lib/new-stub-email-based-authentication
+                                  stores-m
+                                  (atom [])
+                                  {:criteria #{:email} 
+                                   :type :block
+                                   :time-window-secs 10
+                                   :threshold 5})]
 
-        (s/validate schema/HashFns hash-fns) => truthy
+         (f/ok? email-authenticator) => truthy 
 
-        (fact "Sign up a user and check that email has been sent"
-              (let [email "some@mail.com"
-                    uri "http://test.com"
-                    password "12345678"]
-                (auth-lib/sign-up email-authenticator
-                                  "Some name"
-                                  email
-                                  password
-                                  {:activation-uri uri}
-                                  ["nickname"])
-                (-> email-authenticator :account-activator :emails deref count) => 1
-                (let [account-created (account/fetch (:account-store stores-m) email)]
-                  account-created => truthy
-                  (:activated (account/fetch (:account-store stores-m) email)) => false
-                  (fact "Before activation one can't sign in"
-                        (f/failed? (auth-lib/sign-in email-authenticator email password)) => true
-                        (:message (auth-lib/sign-in email-authenticator email password)) => "The account needs to be activated first")
-                  (fact "Activate account"
-                        (let [activation-link (:activation-link account-created)]
-                          (f/ok? (auth-lib/activate-account email-authenticator email
-                                                            {:activation-link activation-link})) => truthy
-                          (:activated (account/fetch (:account-store stores-m) email)) => true))
-                  (fact "We can now log in"
-                        (f/ok? (auth-lib/sign-in email-authenticator email password)) => true)
+         (s/validate schema/HashFns hash-fns) => truthy
 
-                  (fact "Reset password and sign in with new password"
-                        ;; TODO expiration
-                        ))))))
+         (fact "Sign up a user and check that email has been sent"
+               (let [email "some@mail.com"
+                     uri "http://test.com"
+                     password "12345678"
+                     created-account (auth-lib/sign-up email-authenticator
+                                                       "Some name"
+                                                       email
+                                                       password
+                                                       {:activation-uri uri}
+                                                       ["nickname"])] 
+                 (-> email-authenticator :account-activator :emails deref count) => 1
+                 created-account => truthy
+                 (:activated (account/fetch (:account-store stores-m) email)) => false
+                 (fact "Before activation one can't sign in"
+                       (f/failed? (auth-lib/sign-in email-authenticator email password {})) => true
+                       (:message (auth-lib/sign-in email-authenticator email password {})) => "The account needs to be activated first")
+                 (fact "Activate account"
+                       (let [activation-link (:activation-link created-account)]
+                         (f/ok? (auth-lib/activate-account email-authenticator email
+                                                           {:activation-link activation-link})) => truthy
+                         (:activated (account/fetch (:account-store stores-m) email)) => true))
+                 (fact "We can now log in"
+                       (f/ok? (auth-lib/sign-in email-authenticator email password {})) => true)
+
+                 (fact "Reset password and sign in with new password"
+                       ;; TODO expiration
+                       )))))

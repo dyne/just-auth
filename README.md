@@ -13,24 +13,30 @@ This Clojure software is a simple two factor authentication library. It contains
 
 ## How to use the library
 
+The library gives you the choice to choose a) what is the second step? Email? Stub-email? b) what storage to use; Mongo? in-memory?
+
 ### Use the two factor email based authenticator
 
 ```clojure
 (require '[just-auth.core :as auth-lib])
 ```
 
-You can create an email authenticator simply by calling 
+You can create an email authenticator backed up by mongodb simply by calling 
 
 ```clojure
 
-;; where create-stores is a function that creates two document-like collections with the respective names.
-;; An example can be found https://github.com/Commonfare-net/clj-storage/blob/b71bd9379a99a85c2c923c2d4b0b45163399a6f6/src/clj_storage/db/mongo.clj#L88)
-(let [stores-m (storage/create-stores ["account-store" "password-recovery-store"])
-      email-conf {:email-server "server"
-                  :email-user "user"
-                  :email-pass "pass"
-                  :email-address "email"}
-      authenticator (email-based-authentication stores  email-config)
+(require '[clj-storage.test.db.test-db :as test-db])
+(require '[just-auth.db.just-auth :as auth-db])
+
+(let [_ (test-db/setup-db) ;; you can replace with any other mongodb
+      ;; Here we choose to use a mongo db and we create the required stores
+      stores-m (auth-db/create-auth-stores (test-db/get-test-db))
+      ;; Please replace below the placeholders with the actual email server conf
+      email-conf {:email-server "<server>"
+                  :email-user "<user>"
+                  :email-pass "<pass>"
+                  :email-address "<email>"}
+      email-authenticator (auth-lib/email-based-authentication stores-m email-conf)
       ;; sign-up
       account (auth-lib/sign-up email-authenticator
                                 "Some name"
@@ -40,17 +46,37 @@ You can create an email authenticator simply by calling
                                 ["nickname"])]
    ;; activate
    (auth-lib/activate-account email-authenticator
-                              {:activation-link (:activation-link account)})
+                              "email@mail.com"
+                              {:activation-link (:activation-link account)}) 
+  
+
    ;; sign-in
    (auth-lib/sign-in email-authenticator
                      "email@mail.com"
                      "password"))
 
-   ;; The full protocol can be found at https://github.com/Commonfare-net/just-auth/blob/099be6a4b569bfe8b6f8629ae2383fe380e5c2bd/src/just_auth/core.clj#L42)
+   ;; The full protocol and calls available can be found at https://github.com/Commonfare-net/just-auth/blob/099be6a4b569bfe8b6f8629ae2383fe380e5c2bd/src/just_auth/core.clj#L42)
 
 ```
 
 If you want to have more influence on the authenticator, like for example change the hashing functions the `new-email-based-authentication` constructor can be used like shown in this [test](https://github.com/Commonfare-net/just-auth/blob/8e7144e768e1e8315d6a4f531e426127d8d96c65/test/just_auth/test/core.clj#L42). 
+
+### Just to try out (no email configuration needed, no actual emails will be sent)
+
+The lib can be used without the actual email service for development. To do so please use
+
+```clojure
+;; One can use real stores or in memory ones like for example https://github.com/Commonfare-net/clj-storage/blob/b71bd9379a99a85c2c923c2d4b0b45163399a6f6/src/clj_storage/core.clj#L74)
+;; Instead of a real mail server an atom is used.
+
+(let [stores (auth-db/create-auth-stores (test-db/get-test-db))
+             ;; For an in-memory DB please replace with call below
+             #_(storage/create-in-memory-stores ["account-store" "password-recovery-store"])
+      ;; here the emails are not sent but instead stored on an atom
+      emails (atom [])]
+    (auth-lib/new-stub-email-based-authentication stores emails))
+
+```
 
 #### Data encryption
 For the data encryption the hash and checking functions can be passed as arguments like
@@ -66,20 +92,6 @@ otherwise it will default to the `derive` and `check` functions from the `buddy/
 #### Error messaging
 
 Instead of throwing exceptions the lib uses the monadic error utilities [failjure](https://github.com/adambard/failjure)
-
-### Just to try out (no configuration needed)
-
-The lib can be used without the actual email service for development. To do so please use
-
-```clojure
-;; One can use real stores or in memory ones like for example https://github.com/Commonfare-net/clj-storage/blob/b71bd9379a99a85c2c923c2d4b0b45163399a6f6/src/clj_storage/core.clj#L74)
-;; Instead of a real mail server an atom is used.
-
-(let [stores (storage/create-in-memory-stores ["account-store" "password-recovery-store"])
-      emails (atom [])]
-    (new-stub-email-based-authentication stores emails))
-
-```
 
 ### Run all tests
 
