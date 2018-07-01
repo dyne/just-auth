@@ -36,7 +36,12 @@ You can create an email authenticator backed up by mongodb simply by calling
                   :email-user "<user>"
                   :email-pass "<pass>"
                   :email-address "<email>"}
-      email-authenticator (auth-lib/email-based-authentication stores-m email-conf)
+      ;; This configuration is needed to adjust the throttling behaviour of the lib. For more info refer to the throttling chapter bellow
+      throttling-config {:criteria #{:email :ip-address} 
+                         :type :block
+                         :time-window-secs 3600
+                         :threshold 1000}
+      email-authenticator (auth-lib/email-based-authentication stores-m email-conf throttling-config)
       ;; sign-up
       account (auth-lib/sign-up email-authenticator
                                 "Some name"
@@ -92,6 +97,23 @@ otherwise it will default to the `derive` and `check` functions from the `buddy/
 #### Error messaging
 
 Instead of throwing exceptions the lib uses the monadic error utilities [failjure](https://github.com/adambard/failjure)
+
+#### Throttling
+
+This chapter explains the lib's mechanism to prevent brutforce attacks and similar attacks to the system. The way this works is that according to config any sign-in attempt will fail with an [Failjure](https://github.com/adambard/failjure) error message if it matches some criteria. To undesrstand the different options lets look into the config:
+
+```clojure
+{:criteria #{:email :ip-address}
+ :type :block
+ :time-window-secs 3600
+ :threshold 1000}
+```
+
+Criteria takes a set which can contain :email, :ip-address, none or both. If :email is used then the lib will check for failed requests for every email, if :ip-address is used it will check for failed attempts to sign in per ip-address, if both are used it will check for combinations of emails and ip address and count those and if none is used it will just count ALL failed attempts.
+The type can be either :block or :delay. The difference is that if block is used, if the criteria are met, a failure will be returned saying that the ip and/or email should be blocked. If :delay is chosen, the error message will contain the seconds for which the email and/or ip should be not let into the system.
+The time window in seconds means that this is the time window for which failed attempts will be counted and threshold is the number of failed attempts that are needed to be reached for the sign-ins to be denied.
+
+ATTENTION: the blocking should ideally be done on a higher level of this lib so a DDOs attack will not consume system resources. For this the failjure errors can be used to update blacklists or databases on a higher level.
 
 ### Run all tests
 

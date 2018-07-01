@@ -32,7 +32,8 @@
    :hash-check-fn clojure.lang.Fn})
 
 (def AuthStores {:account-store StoreSchema
-                 :password-recovery-store StoreSchema})
+                 :password-recovery-store StoreSchema
+                 :failed-login-store StoreSchema})
 
 (def EmailSignUp
   {:name s/Str
@@ -42,9 +43,14 @@
    :activation-uri s/Str ;; TODO URI
    })
 
+(def ThrottlingConfig
+  {:criteria #{(s/maybe (s/enum :email :ip-address))} 
+   :type (s/enum :block :delay)
+   :time-window-secs s/Num
+   :threshold s/Num})
+
 (def EmailConfig
   {:email-server s/Str 
    :email-user s/Str
    :email-pass s/Str
    :email-address s/Str})
-
