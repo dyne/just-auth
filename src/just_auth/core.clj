@@ -50,7 +50,7 @@
 
   (sign-in [this email password args])
 
-  ;; TODO: sign-out? => so far thinking of adding session data on a higher level lib
+  (get-account [this email])
   
   ;; TODO: maybe add password?
   (activate-account [this email second-step-conf])
@@ -126,6 +126,7 @@
                                                    :action "activate"
                                                    :token activation-id
                                                    :email email})]
+            (log/info (str "Email <" email "> activation link: " activation-link))
             (if-not (m/email-and-update! account-activator email activation-link)
               (f/fail (t/locale [:error :core :not-sent]))
               (merge account {:activation-link activation-link}))))
@@ -164,13 +165,19 @@
                       :password password
                       :ip-address ip-address}))
 
+  (get-account [_ email]
+    (let [account (account/fetch account-store email)]
+      (if (nil? account)
+        (f/fail "Account not found: " email)
+        account)))
+
   (activate-account [_ email {:keys [activation-link]}]
-    (let [account (account/fetch-by-activation-link account-store activation-link)]
-      (if account
-        (if (= (:email account) email)
-          (account/activate! account-store email)
-          (f/fail (t/locale :error :core :not-matching-code)))
-        (f/fail (str (t/locale [:error :core :activation-not-found]) activation-link)))))
+    (if-let [account (account/fetch-by-activation-link account-store activation-link)]
+      (if (= (:email account) email)
+        (account/activate! account-store email)
+        (f/fail (t/locale :error :core :not-matching-code)))
+      (f/fail (str (t/locale [:error :core :activation-not-found])
+                   activation-link))))
 
   (de-activate-account [_ email de-activation-link]
     ;; TODO
