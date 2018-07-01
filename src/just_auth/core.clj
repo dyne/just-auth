@@ -257,6 +257,14 @@
                       :password password
                       :ip-address ip-address}))
 
+  (get-account [_ email]
+    (let [account (account/fetch
+                   (:account-store account-activator)
+                   email)]
+      (if (nil? account)
+        (f/fail "Account not found: " email)
+        account)))
+
   (activate-account [_ email {:keys [activation-link]}]
     (account/activate! (:account-store account-activator) email))
   
