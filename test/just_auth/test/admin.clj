@@ -1,9 +1,9 @@
 ;; Just auth - a simple two factor authenticatiokn library
 
-;; part of Decentralized Citizen Engagement Technologies (D-CENT)
-;; R&D funded by the European Commission (FP7/CAPS 610349)
+;; part of PIE News (http://pieproject.eu/)
+;; R&D funded by the European Commission (Horizon 2020/grant agreement No 687922)
 
-;; Copyright (C) 2017 Dyne.org foundation
+;; Copyright (C) 2017-2018 Dyne.org foundation
 
 ;; Sourcecode designed, written and maintained by
 ;; Aspasia Beneti  <aspra@dyne.org>
@@ -20,7 +20,7 @@
 
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
-(ns just-auth.test.core
+(ns just-auth.test.admin
   (:require [midje.sweet :refer :all]
             [just-auth
              [core  :as auth-lib]
@@ -32,10 +32,7 @@
              [just-auth :as auth-db]]
             [schema.core :as s]
             [taoensso.timbre :as log]
-            [buddy.hashers :as hashers]
             [failjure.core :as f]
-            [auxiliary.translation :as t]
-            [environ.core :as env]
             [clj-storage.test.db.test-db :as test-db]))
 
 (fact "Can sign up using the real authenticator implementation and a real db"
@@ -43,10 +40,10 @@
             db (test-db/get-test-db)
             stores-m (auth-db/create-auth-stores db)
             email-authenticator (auth-lib/email-based-authentication stores-m
-                                                                     {:email-config {:email-server "server"
-                                                                                     :email-user "user"
-                                                                                     :email-address "address"
-                                                                                     :email-pass "pass"}}
+                                                                     {:email-server "server"
+                                                                      :email-user "user"
+                                                                      :email-address "address"
+                                                                      :email-pass "pass"}
                                                                      {:criteria #{:email}
                                                                       :type :block
                                                                       :time-window-secs 10

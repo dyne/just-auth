@@ -19,7 +19,7 @@
                  [org.clojars.dyne/fxc "0.5.0"]
 
                  ;; storage lib
-                 [org.clojars.dyne/clj-storage "0.6.0"]
+                 [org.clojars.dyne/clj-storage "0.7.0"]
 
                  ;; config etc.
                  [org.clojars.dyne/auxiliary "0.4.0"]

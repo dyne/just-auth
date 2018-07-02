@@ -30,7 +30,7 @@
             [clj-storage.db.mongo :as mongo]
             [auxiliary.translation :as t]
             [schema.core :as s]
-            [just-auth.schema :refer [EmailConfig StoreSchema]]))
+            [just-auth.schema :refer [EmailConfig AuthConfig StoreSchema]]))
 
 (defn postal-basic-conf [conf]
   {:host (:email-server conf)
@@ -54,29 +54,29 @@
     :subject subject
     :body body}))
 
-(defrecord AccountActivator [email-conf account-store]
+(defrecord AccountActivator [auth-conf account-store]
   Email
   (email-and-update! [_ email activation-link]
     (let [email-response (if (account/update-activation-link! account-store email activation-link)
-                           (send-email email-conf email
-                                       (t/locale [:email :account-activator :title])
-                                       (str (t/locale [:email :account-activator :content]) activation-link))
+                           (if-let [admin-email (:admin-email auth-conf)]
+                             (send-email (:email-config auth-conf) admin-email (t/locale [:email :account-activator :title]) (str (t/locale [:email :account-activator :content]) activation-link))
+                             (send-email (:email-config auth-conf) email (t/locale [:email :account-activator :title]) (str (t/locale [:email :account-activator :content]) activation-link)))
                            false)]
       (if (= :SUCCESS (:error email-response))
         email-response
         false))))
 
 (s/defn ^:always-validate new-account-activator
-  [email-conf :- EmailConfig
+  [auth-conf :- AuthConfig
    account-store :- StoreSchema]
-  (map->AccountActivator {:email-conf email-conf
+  (map->AccountActivator {:auth-conf auth-conf
                           :account-store account-store}))
 
-(defrecord PasswordRecoverer [email-conf password-recovery-store]
+(defrecord PasswordRecoverer [auth-conf password-recovery-store]
   Email
   (email-and-update! [_ email password-recovery-link]
     (let [email-response       (if (password-recovery/new-entry! password-recovery-store email password-recovery-link)
-                                 (send-email email-conf email
+                                 (send-email auth-conf email
                                              (t/locale [:email :password-recoverer :title])
                                              (str (t/locale [:email :password-recoverer :content1]) email (t/locale [:email :password-recoverer :content2])  password-recovery-link (t/locale [:email :password-recoverer :content3])))
                                  false)]

@@ -31,7 +31,8 @@
                              AuthStores 
                              EmailSignUp
                              StoreSchema
-                             EmailConfig
+                             AuthConfig
+                             StubAuthConfig
                              ThrottlingConfig]]
              [messaging :as m :refer [EmailMessagingSchema]]
              [util :as u]
@@ -212,15 +213,15 @@
                                               :throttling-config throttling-config})))
 (s/defn ^:always-validate email-based-authentication
   [stores :- AuthStores
-   email-configuration :- EmailConfig
+   auth-configuration :- AuthConfig
    throttling-config :- ThrottlingConfig]
   ;; Make sure the transation is loaded
   (when (empty? @translation/translation)
     (translation/init (env/env :auth-translation-fallback)
                       (env/env :auth-translation-language)))
   (new-email-based-authentication stores
-                                  (m/new-account-activator email-configuration (:account-store stores))
-                                  (m/new-password-recoverer email-configuration (:password-recovery-store stores))
+                                  (m/new-account-activator auth-configuration (:account-store stores))
+                                  (m/new-password-recoverer auth-configuration (:password-recovery-store stores))
                                   u/sample-hash-fns
                                   throttling-config))
 
@@ -279,7 +280,11 @@
   (list-accounts [_ params]
     (account/list-accounts (-> account-activator :account-store) params)))
 
-(defn new-stub-email-based-authentication [stores emails throttling-config]
+(s/defn ^:always-validate new-stub-email-based-authentication
+  [stores :- AuthStores
+   emails :- clojure.lang.Atom
+   auth-configuration :- StubAuthConfig
+   throttling-config :- ThrottlingConfig]
   ;; Make sure the transation is loaded
   (when (empty? @translation/translation)
     (translation/init (env/env :auth-translation-fallback)

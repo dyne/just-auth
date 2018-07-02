@@ -54,3 +54,10 @@
    :email-user s/Str
    :email-pass s/Str
    :email-address s/Str})
+
+(def AuthConfig
+  {:email-config EmailConfig
+   (s/optional-key :admin-email) s/Str})
+
+(def StubAuthConfig
+  {(s/optional-key :admin-email) s/Str})
