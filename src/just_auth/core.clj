@@ -221,7 +221,7 @@
                       (env/env :auth-translation-language)))
   (new-email-based-authentication stores
                                   (m/new-account-activator auth-configuration (:account-store stores))
-                                  (m/new-password-recoverer auth-configuration (:password-recovery-store stores))
+                                  (m/new-password-recoverer (:email-config auth-configuration) (:password-recovery-store stores))
                                   u/sample-hash-fns
                                   throttling-config))
 
@@ -289,7 +289,7 @@
   (when (empty? @translation/translation)
     (translation/init (env/env :auth-translation-fallback)
                       (env/env :auth-translation-language)))
-  (map->StubEmailBasedAuthentication {:account-activator (m/new-stub-account-activator stores emails)
+  (map->StubEmailBasedAuthentication {:account-activator (m/new-stub-account-activator stores auth-configuration emails)
                                       :password-recoverer (m/new-stub-password-recoverer stores emails)
                                       :failed-login-store (:failed-login-store stores)
                                       :throttling-config throttling-config}

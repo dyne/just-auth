@@ -72,11 +72,11 @@
   (map->AccountActivator {:auth-conf auth-conf
                           :account-store account-store}))
 
-(defrecord PasswordRecoverer [auth-conf password-recovery-store]
+(defrecord PasswordRecoverer [email-conf password-recovery-store]
   Email
   (email-and-update! [_ email password-recovery-link]
     (let [email-response       (if (password-recovery/new-entry! password-recovery-store email password-recovery-link)
-                                 (send-email auth-conf email
+                                 (send-email email-conf email
                                              (t/locale [:email :password-recoverer :title])
                                              (str (t/locale [:email :password-recoverer :content1]) email (t/locale [:email :password-recoverer :content2])  password-recovery-link (t/locale [:email :password-recoverer :content3])))
                                  false)]
@@ -104,9 +104,9 @@
     (first @emails)))
 
 (defn new-stub-account-activator
-  ([stores]
+  ([stores auth-config]
    (new-stub-account-activator stores (atom [])))
-  ([stores emails]
+  ([stores auth-config emails]
    (->StubAccountActivator emails (:account-store stores))))
 
 (defrecord StubPasswordRecoverer [emails password-recovery-store]
