@@ -35,32 +35,17 @@
             [failjure.core :as f]
             [clj-storage.test.db.test-db :as test-db]))
 
-(fact "Can sign up using the real authenticator implementation and a real db"
-      (let [_ (test-db/setup-db)
-            db (test-db/get-test-db)
-            stores-m (auth-db/create-auth-stores db)
-            email-authenticator (auth-lib/email-based-authentication stores-m
-                                                                     {:email-server "server"
-                                                                      :email-user "user"
-                                                                      :email-address "address"
-                                                                      :email-pass "pass"}
-                                                                     {:criteria #{:email}
-                                                                      :type :block
-                                                                      :time-window-secs 10
-                                                                      :threshold 10})
-            attempt (auth-lib/sign-in (log/spy email-authenticator) 
-                                      "test@mail.com"
-                                      "password"
-                                      {})]
-        (f/failed? attempt) => true
-        (:message attempt) => "No account found for email test@mail.com"))
+(def emails (atom []))
+(def user-email "user@mail.com")
+(def admin-email "admin@mail.com")
 
-(facts "Some basic core behaviour tested using the stub implementation."
-       (let [stores-m (auth-db/create-in-memory-stores)
+(fact "Check using a stub implementation the effect of the admin absence"
+      (let [stores-m (auth-db/create-in-memory-stores)
              hash-fns u/sample-hash-fns
              email-authenticator (auth-lib/new-stub-email-based-authentication
                                   stores-m
-                                  (atom [])
+                                  emails
+                                  {}
                                   {:criteria #{:email} 
                                    :type :block
                                    :time-window-secs 10
@@ -70,30 +55,40 @@
 
          (s/validate schema/HashFns hash-fns) => truthy
 
-         (fact "Sign up a user and check that email has been sent"
-               (let [email "some@mail.com"
-                     uri "http://test.com"
+         (fact "When there is no admin included the activation email is sent to the user."
+               (let [uri "http://test.com"
                      password "12345678"
                      created-account (auth-lib/sign-up email-authenticator
                                                        "Some name"
-                                                       email
+                                                       user-email
                                                        password
                                                        {:activation-uri uri}
                                                        ["nickname"])] 
-                 (-> email-authenticator :account-activator :emails deref count) => 1
-                 created-account => truthy
-                 (:activated (account/fetch (:account-store stores-m) email)) => false
-                 (fact "Before activation one can't sign in"
-                       (f/failed? (auth-lib/sign-in email-authenticator email password {})) => true
-                       (:message (auth-lib/sign-in email-authenticator email password {})) => "The account needs to be activated first")
-                 (fact "Activate account"
-                       (let [activation-link (:activation-link created-account)]
-                         (f/ok? (auth-lib/activate-account email-authenticator email
-                                                           {:activation-link activation-link})) => truthy
-                         (:activated (account/fetch (:account-store stores-m) email)) => true))
-                 (fact "We can now log in"
-                       (f/ok? (auth-lib/sign-in email-authenticator email password {})) => true)
+                 (-> @emails last :email) => user-email))))
 
-                 (fact "Reset password and sign in with new password"
-                       ;; TODO expiration
-                       )))))
+(fact "Check using a stub implementation the effect of the admin absence"
+      (let [stores-m (auth-db/create-in-memory-stores)
+            hash-fns u/sample-hash-fns
+            email-authenticator (auth-lib/new-stub-email-based-authentication
+                                 stores-m
+                                 emails
+                                 {:email-admin admin-email}
+                                 {:criteria #{:email} 
+                                  :type :block
+                                  :time-window-secs 10
+                                  :threshold 5})]
+
+        (f/ok? email-authenticator) => truthy 
+
+        (s/validate schema/HashFns hash-fns) => truthy
+
+        (fact "When there is no admin included the activation email is sent to the user."
+              (let [uri "http://test.com"
+                    password "12345678"
+                    created-account (auth-lib/sign-up email-authenticator
+                                                      "Some name"
+                                                      user-email
+                                                      password
+                                                      {:activation-uri uri}
+                                                      ["nickname"])] 
+                (-> @emails last :email) => admin-email))))
