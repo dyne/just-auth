@@ -31,8 +31,8 @@
                              AuthStores 
                              EmailSignUp
                              StoreSchema
-                             AuthConfig
-                             StubAuthConfig
+                             EmailConfig
+                             StubEmailConfig
                              ThrottlingConfig]]
              [messaging :as m :refer [EmailMessagingSchema]]
              [util :as u]
@@ -213,15 +213,15 @@
                                               :throttling-config throttling-config})))
 (s/defn ^:always-validate email-based-authentication
   [stores :- AuthStores
-   auth-configuration :- AuthConfig
+   email-configuration :- EmailConfig
    throttling-config :- ThrottlingConfig]
   ;; Make sure the transation is loaded
   (when (empty? @translation/translation)
     (translation/init (env/env :auth-translation-fallback)
                       (env/env :auth-translation-language)))
   (new-email-based-authentication stores
-                                  (m/new-account-activator auth-configuration (:account-store stores))
-                                  (m/new-password-recoverer (:email-config auth-configuration) (:password-recovery-store stores))
+                                  (m/new-account-activator email-configuration (:account-store stores))
+                                  (m/new-password-recoverer email-configuration (:password-recovery-store stores))
                                   u/sample-hash-fns
                                   throttling-config))
 
@@ -283,14 +283,13 @@
 (s/defn ^:always-validate new-stub-email-based-authentication
   [stores :- AuthStores
    emails :- clojure.lang.Atom
-   auth-configuration :- StubAuthConfig
+   email-configuration :- StubEmailConfig
    throttling-config :- ThrottlingConfig]
   ;; Make sure the transation is loaded
   (when (empty? @translation/translation)
     (translation/init (env/env :auth-translation-fallback)
                       (env/env :auth-translation-language)))
-  (map->StubEmailBasedAuthentication {:account-activator (m/new-stub-account-activator stores auth-configuration emails)
+  (map->StubEmailBasedAuthentication {:account-activator (m/new-stub-account-activator stores email-configuration emails)
                                       :password-recoverer (m/new-stub-password-recoverer stores emails)
                                       :failed-login-store (:failed-login-store stores)
-                                      :throttling-config throttling-config}
-                                     ))
+                                      :throttling-config throttling-config}))

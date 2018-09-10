@@ -38,17 +38,17 @@
             [environ.core :as env]
             [clj-storage.test.db.test-db :as test-db]))
 
-(def auth-configuration {:email-config {:email-server "server"
-                                        :email-user "user"
-                                        :email-address "address"
-                                        :email-pass "pass"}})
+(def email-configuration {:email-server "server"
+                          :email-user "user"
+                          :email-address "address"
+                          :email-pass "pass"})
 
 (fact "Can sign up using the real authenticator implementation and a real db"
       (let [_ (test-db/setup-db)
             db (test-db/get-test-db)
             stores-m (auth-db/create-auth-stores db)
             email-authenticator (auth-lib/email-based-authentication stores-m
-                                                                     auth-configuration                                 
+                                                                     email-configuration                                 
                                                                      {:criteria #{:email}
                                                                       :type :block
                                                                       :time-window-secs 10

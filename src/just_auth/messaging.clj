@@ -30,7 +30,7 @@
             [clj-storage.db.mongo :as mongo]
             [auxiliary.translation :as t]
             [schema.core :as s]
-            [just-auth.schema :refer [EmailConfig AuthConfig StoreSchema]]))
+            [just-auth.schema :refer [EmailConfig StoreSchema]]))
 
 (defn postal-basic-conf [conf]
   {:host (:email-server conf)
@@ -54,22 +54,22 @@
     :subject subject
     :body body}))
 
-(defrecord AccountActivator [auth-conf account-store]
+(defrecord AccountActivator [email-conf account-store]
   Email
   (email-and-update! [_ email activation-link]
     (let [email-response (if (account/update-activation-link! account-store email activation-link)
-                           (if-let [admin-email (:admin-email auth-conf)]
-                             (send-email (:email-config auth-conf) admin-email (t/locale [:email :account-activator :title]) (str (t/locale [:email :account-activator :content]) activation-link))
-                             (send-email (:email-config auth-conf) email (t/locale [:email :account-activator :title]) (str (t/locale [:email :account-activator :content]) activation-link)))
+                           (if-let [admin-email (:email-admin email-conf)]
+                             (send-email email-conf admin-email (t/locale [:email :account-activator :title]) (str (t/locale [:email :account-activator :content]) activation-link))
+                             (send-email email-conf email (t/locale [:email :account-activator :title]) (str (t/locale [:email :account-activator :content]) activation-link)))
                            false)]
       (if (= :SUCCESS (:error email-response))
         email-response
         false))))
 
 (s/defn ^:always-validate new-account-activator
-  [auth-conf :- AuthConfig
+  [email-conf :- EmailConfig
    account-store :- StoreSchema]
-  (map->AccountActivator {:auth-conf auth-conf
+  (map->AccountActivator {:email-conf email-conf
                           :account-store account-store}))
 
 (defrecord PasswordRecoverer [email-conf password-recovery-store]
@@ -96,18 +96,20 @@
   (map->PasswordRecoverer {:email-conf email-conf
                            :password-recovery-store password-recovery-store}))
 
-(defrecord StubAccountActivator [emails account-store]
+(defrecord StubAccountActivator [emails email-config account-store]
   Email
   (email-and-update! [_ email activation-link]
-    (update-emails emails {:activation-link activation-link} email)
+    (if-let [admin-email (:email-admin email-config)]
+      (update-emails emails {:activation-link activation-link} admin-email)
+      (update-emails emails {:activation-link activation-link} email)) 
     (account/update-activation-link! account-store email activation-link) 
     (first @emails)))
 
 (defn new-stub-account-activator
-  ([stores auth-config]
-   (new-stub-account-activator stores (atom [])))
-  ([stores auth-config emails]
-   (->StubAccountActivator emails (:account-store stores))))
+  ([stores email-config]
+   (new-stub-account-activator stores email-config (atom [])))
+  ([stores email-config emails]
+   (->StubAccountActivator emails email-config (:account-store stores))))
 
 (defrecord StubPasswordRecoverer [emails password-recovery-store]
   Email
