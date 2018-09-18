@@ -2,8 +2,8 @@
 
 email:
   account-activator:
-    title: "Please activate your freecoin account"
-    content: "Please click on the link below to activate your account "
+    title: "Please activate the following account"
+    content: "Please click on the link below to activate the account "
   password-recoverer:
     title: "Password recovery"
     content1: "Password recovery was requested for participant "

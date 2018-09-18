@@ -1,4 +1,4 @@
-(defproject org.clojars.dyne/just-auth "0.3.0"
+(defproject org.clojars.dyne/just-auth "0.4.0"
   :description "Simple two factor authentication library"
   :url "https://github.com/PIENews/just-auth"
 
@@ -19,7 +19,7 @@
                  [org.clojars.dyne/fxc "0.5.0"]
 
                  ;; storage lib
-                 [org.clojars.dyne/clj-storage "0.6.0"]
+                 [org.clojars.dyne/clj-storage "0.7.0"]
 
                  ;; config etc.
                  [org.clojars.dyne/auxiliary "0.4.0"]

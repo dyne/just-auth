@@ -58,9 +58,9 @@
   Email
   (email-and-update! [_ email activation-link]
     (let [email-response (if (account/update-activation-link! account-store email activation-link)
-                           (send-email email-conf email
-                                       (t/locale [:email :account-activator :title])
-                                       (str (t/locale [:email :account-activator :content]) activation-link))
+                           (if-let [admin-email (:email-admin email-conf)]
+                             (send-email email-conf admin-email (t/locale [:email :account-activator :title]) (str (t/locale [:email :account-activator :content]) activation-link))
+                             (send-email email-conf email (t/locale [:email :account-activator :title]) (str (t/locale [:email :account-activator :content]) activation-link)))
                            false)]
       (if (= :SUCCESS (:error email-response))
         email-response
@@ -96,18 +96,20 @@
   (map->PasswordRecoverer {:email-conf email-conf
                            :password-recovery-store password-recovery-store}))
 
-(defrecord StubAccountActivator [emails account-store]
+(defrecord StubAccountActivator [emails email-config account-store]
   Email
   (email-and-update! [_ email activation-link]
-    (update-emails emails {:activation-link activation-link} email)
+    (if-let [admin-email (:email-admin email-config)]
+      (update-emails emails {:activation-link activation-link} admin-email)
+      (update-emails emails {:activation-link activation-link} email)) 
     (account/update-activation-link! account-store email activation-link) 
     (first @emails)))
 
 (defn new-stub-account-activator
-  ([stores]
-   (new-stub-account-activator stores (atom [])))
-  ([stores emails]
-   (->StubAccountActivator emails (:account-store stores))))
+  ([stores email-config]
+   (new-stub-account-activator stores email-config (atom [])))
+  ([stores email-config emails]
+   (->StubAccountActivator emails email-config (:account-store stores))))
 
 (defrecord StubPasswordRecoverer [emails password-recovery-store]
   Email
