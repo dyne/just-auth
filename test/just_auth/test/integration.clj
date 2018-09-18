@@ -41,6 +41,7 @@
                                  authenticator (auth-lib/new-stub-email-based-authentication
                                                 stores
                                                 (atom [])
+                                                {}
                                                 {:criteria #{:email :ip-address} 
                                                  :type :block
                                                  :time-window-secs 10
@@ -99,6 +100,7 @@
                                  authenticator (auth-lib/new-stub-email-based-authentication
                                                 stores
                                                 (atom [])
+                                                {}
                                                 {:criteria #{} 
                                                  :type :block
                                                  :time-window-secs 2

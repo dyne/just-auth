@@ -32,6 +32,7 @@
                              EmailSignUp
                              StoreSchema
                              EmailConfig
+                             StubEmailConfig
                              ThrottlingConfig]]
              [messaging :as m :refer [EmailMessagingSchema]]
              [util :as u]
@@ -279,13 +280,16 @@
   (list-accounts [_ params]
     (account/list-accounts (-> account-activator :account-store) params)))
 
-(defn new-stub-email-based-authentication [stores emails throttling-config]
+(s/defn ^:always-validate new-stub-email-based-authentication
+  [stores :- AuthStores
+   emails :- clojure.lang.Atom
+   email-configuration :- StubEmailConfig
+   throttling-config :- ThrottlingConfig]
   ;; Make sure the transation is loaded
   (when (empty? @translation/translation)
     (translation/init (env/env :auth-translation-fallback)
                       (env/env :auth-translation-language)))
-  (map->StubEmailBasedAuthentication {:account-activator (m/new-stub-account-activator stores emails)
+  (map->StubEmailBasedAuthentication {:account-activator (m/new-stub-account-activator stores email-configuration emails)
                                       :password-recoverer (m/new-stub-password-recoverer stores emails)
                                       :failed-login-store (:failed-login-store stores)
-                                      :throttling-config throttling-config}
-                                     ))
+                                      :throttling-config throttling-config}))
