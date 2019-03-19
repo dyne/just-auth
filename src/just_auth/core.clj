@@ -36,10 +36,10 @@
                              ThrottlingConfig]]
              [messaging :as m :refer [EmailMessagingSchema]]
              [util :as u]
-             [throttling :as thr]]
+             [throttling :as thr]
+             [random :as rng]]
             [taoensso.timbre :as log]
             [schema.core :as s]
-            [fxc.core :as fxc]
             [failjure.core :as f]
             [auxiliary.translation :as t]
             [auxiliary.translation :as translation]
@@ -122,7 +122,7 @@
       (if account
         (if (:activated account)
           (f/fail (t/locale [:error :core :already-active]))
-          (let [activation-id (fxc.core/generate 32)
+          (let [activation-id (rng/generate 32)
                 activation-link (u/construct-link {:uri activation-uri
                                                    :action "activate"
                                                    :token activation-id
@@ -139,7 +139,7 @@
       (if account
         (if (pr/fetch password-recovery-store email)
           (f/fail (t/locale [:error :core :password-already-sent]))
-          (let [password-reset-id (fxc.core/generate 32)
+          (let [password-reset-id (rng/generate 32)
                 password-reset-link (u/construct-link {:uri reset-uri
                                                        :token password-reset-id
                                                        :email email
@@ -233,7 +233,7 @@
      throttling-config :- ThrottlingConfig]
   Authentication
   (send-activation-message [_ email {:keys [activation-uri]}]
-    (let [activation-id (fxc.core/generate 32)
+    (let [activation-id (rng/generate 32)
           activation-link (u/construct-link {:uri activation-uri
                                              :action "activate"
                                              :token activation-id
@@ -270,7 +270,7 @@
     (account/activate! (:account-store account-activator) email))
   
   (send-password-reset-message [_ email {:keys [reset-uri]}]
-    (let [password-reset-id (fxc.core/generate 32)
+    (let [password-reset-id (rng/generate 32)
           password-reset-link (u/construct-link {:uri reset-uri
                                                  :token password-reset-id
                                                  :email email
