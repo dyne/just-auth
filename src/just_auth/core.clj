@@ -176,7 +176,7 @@
     (if-let [account (account/fetch-by-activation-link account-store activation-link)]
       (if (= (:email account) email)
         (account/activate! account-store email)
-        (f/fail (t/locale :error :core :not-matching-code)))
+        (f/fail (t/locale [:error :core :not-matching-code])))
       (f/fail (str (t/locale [:error :core :activation-not-found])
                    activation-link))))
 
