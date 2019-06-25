@@ -16,10 +16,10 @@
                  [buddy/buddy-hashers "1.3.0"] 
                  
                  ;; fxc secret sharing protocol
-                 [org.clojars.dyne/fxc "0.6.0-SNAPSHOT"]
+                 [org.clojars.dyne/fxc "0.6.0"]
 
                  ;; storage lib
-                 [org.clojars.dyne/clj-storage "0.10.0-SNAPSHOT"]
+                 [org.clojars.dyne/clj-storage "0.10.0"]
 
                  ;; config etc.
                  [org.clojars.dyne/auxiliary "0.4.0"]
