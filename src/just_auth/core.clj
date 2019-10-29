@@ -128,9 +128,9 @@
                                                    :token activation-id
                                                    :email email})]
             (log/info (str "Email <" email "> activation link: " activation-link))
-            (if-not (m/email-and-update! account-activator email activation-link)
-              (f/fail (t/locale [:error :core :not-sent]))
-              (merge account {:activation-link activation-link}))))
+            (f/if-let-ok? [_ (f/try* (m/email-and-update! account-activator email activation-link))]
+              (merge account {:activation-link activation-link})
+              (f/fail (t/locale [:error :core :not-sent])))))
         ;; TODO: send an email to that email
         (f/fail (str (t/locale [:error :core :account-not-found]) email)))))
 
@@ -144,9 +144,9 @@
                                                        :token password-reset-id
                                                        :email email
                                                        :action "reset-password"})]
-            (if-not (m/email-and-update! password-recoverer email password-reset-link)
-              (f/fail (t/locale [:error :core :not-sent]))
-              account)))
+            (f/if-let-ok? [_ (f/try* (m/email-and-update! password-recoverer email password-reset-link))]
+              account
+              (f/fail (t/locale [:error :core :not-sent])))))
         ;; TODO: send an email to that email?
         (f/fail (str (t/locale [:error :core :account-not-found]) email)))))
   
