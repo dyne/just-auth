@@ -1,4 +1,4 @@
-(defproject org.clojars.dyne/just-auth "0.5.0"
+(defproject org.clojars.dyne/just-auth "0.5.1-SNAPSHOT"
   :description "Simple two factor authentication library"
   :url "https://github.com/PIENews/just-auth"
 

@@ -27,7 +27,6 @@
              [account :as account] 
              [password-recovery :as password-recovery]]
             [taoensso.timbre :as log]
-            [clj-storage.db.mongo :as mongo]
             [auxiliary.translation :as t]
             [schema.core :as s]
             [just-auth.schema :refer [EmailConfig StoreSchema]]))
