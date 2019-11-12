@@ -62,8 +62,7 @@
 
   (de-activate-account [this email password])
 
-  (reset-password [this email new-password second-step-conf])
-  ;; TODO: replace-password ?
+  (reset-password [this email old-password new-password second-step-conf])
 
   (list-accounts [this params]))
 
@@ -97,16 +96,16 @@
                        {:email email
                         :name (:name account)
                         :other-names (:other-names account)}
-                       ;; TODO: send email?
-                       ;; TODO: waht to do after x amount of times? Maybe should be handled on server level?
+          ;; TODO: send email?
+          ;; TODO: waht to do after x amount of times? Maybe should be handled on server level?
                        (do
                          (fl/new-attempt! failed-login-store email ip-address)
                          (f/fail (t/locale [:error :core :wrong-pass]))))
                      (f/fail (t/locale [:error :core :not-active])))
                    (f/fail (str (t/locale [:error :core :account-not-found]) email)))
                  (f/when-failed [e]
-                   (log/error (f/message e))
-                   e)))
+                                (log/error (f/message e))
+                                e)))
 
 (s/defrecord EmailBasedAuthentication
              [account-store :-  StoreSchema
@@ -129,9 +128,9 @@
                                                    :token activation-id
                                                    :email email})]
             (log/info (str "Email <" email "> activation link: " activation-link))
-            (if-not (m/email-and-update! account-activator email activation-link)
-              (f/fail (t/locale [:error :core :not-sent]))
-              (merge account {:activation-link activation-link}))))
+            (f/if-let-ok? [_ (f/try* (m/email-and-update! account-activator email activation-link))]
+                          (merge account {:activation-link activation-link})
+                          (f/fail (t/locale [:error :core :not-sent])))))
         ;; TODO: send an email to that email
         (f/fail (str (t/locale [:error :core :account-not-found]) email)))))
 
@@ -145,10 +144,9 @@
                                                        :token password-reset-id
                                                        :email email
                                                        :action "reset-password"})]
-            (log/info (str "Email <" email "> activation link: " password-reset-link))
-            (if-not (m/email-and-update! password-recoverer email password-reset-link)
-              (f/fail (t/locale [:error :core :not-sent]))
-              account)))
+            (f/if-let-ok? [_ (f/try* (m/email-and-update! password-recoverer email password-reset-link))]
+                          account
+                          (f/fail (t/locale [:error :core :not-sent])))))
         ;; TODO: send an email to that email?
         (f/fail (str (t/locale [:error :core :account-not-found]) email)))))
 
@@ -186,21 +184,12 @@
     ;; TODO
     )
 
-  ;  TODO "replace-password"
-  ; (reset-password [_ email old-password new-password {:keys [password-reset-link]}]
-  ;   (if (= (pr/fetch-by-password-recovery-link password-recovery-store password-reset-link))
-  ;     (if (account/correct-password? account-store email old-password (:hash-check-fn hash-fns))
-  ;       (account/update-password! account-store email new-password (:hash-fn hash-fns))
-  ;       ;; TODO: send email?
-  ;       (f/fail (t/locale [:error :core :wrong-pass])))
-  ;     (f/fail (t/locale [:error :core :expired-link]))))
-
-  (reset-password [_ email new-password {:keys [password-reset-link]}]
+  (reset-password [_ email old-password new-password {:keys [password-reset-link]}]
     (if (= (pr/fetch-by-password-recovery-link password-recovery-store password-reset-link))
-
-      (account/update-password! account-store email new-password (:hash-fn hash-fns))
+      (if (account/correct-password? account-store email old-password (:hash-check-fn hash-fns))
+        (account/update-password! account-store email new-password (:hash-fn hash-fns))
         ;; TODO: send email?
-
+        (f/fail (t/locale [:error :core :wrong-pass])))
       (f/fail (t/locale [:error :core :expired-link]))))
 
   (list-accounts [_ params]
@@ -238,10 +227,10 @@
 
 ;; This is meant for an implementation that doesnt use the email service but an atom instead
 (s/defrecord StubEmailBasedAuthentication
-    [account-activator :- EmailMessagingSchema
-     password-recoverer :- EmailMessagingSchema
-     failed-login-store :- StoreSchema
-     throttling-config :- ThrottlingConfig]
+             [account-activator :- EmailMessagingSchema
+              password-recoverer :- EmailMessagingSchema
+              failed-login-store :- StoreSchema
+              throttling-config :- ThrottlingConfig]
   Authentication
   (send-activation-message [_ email {:keys [activation-uri]}]
     (let [activation-id (fxc.core/generate 32)
