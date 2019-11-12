@@ -52,7 +52,7 @@
   (sign-in [this email password args])
 
   (get-account [this email])
-  
+
   ;; TODO: maybe add password?
   (activate-account [this email second-step-conf])
 
@@ -62,8 +62,9 @@
 
   (de-activate-account [this email password])
 
-  (reset-password [this email old-password new-password second-step-conf])
-
+  (reset-password [this email new-password second-step-conf])
+  ;; TODO: replace-password ? 
+  
   (list-accounts [this params]))
 
 (s/defn ^:always-validate sign-up-with-email
@@ -108,13 +109,13 @@
                    e)))
 
 (s/defrecord EmailBasedAuthentication
-    [account-store :-  StoreSchema
-     password-recovery-store :- StoreSchema
-     failed-login-store :- StoreSchema
-     account-activator :- EmailMessagingSchema
-     password-recoverer :- EmailMessagingSchema
-     hash-fns :- HashFns
-     throttling-config :- ThrottlingConfig]
+             [account-store :-  StoreSchema
+              password-recovery-store :- StoreSchema
+              failed-login-store :- StoreSchema
+              account-activator :- EmailMessagingSchema
+              password-recoverer :- EmailMessagingSchema
+              hash-fns :- HashFns
+              throttling-config :- ThrottlingConfig]
 
   Authentication
   (send-activation-message [_ email {:keys [activation-uri]}]
@@ -144,6 +145,7 @@
                                                        :token password-reset-id
                                                        :email email
                                                        :action "reset-password"})]
+            (log/info (str "Email <" email "> activation link: " password-reset-link))
             (if-not (m/email-and-update! password-recoverer email password-reset-link)
               (f/fail (t/locale [:error :core :not-sent]))
               account)))
@@ -183,13 +185,22 @@
   (de-activate-account [_ email de-activation-link]
     ;; TODO
     )
-
-  (reset-password [_ email old-password new-password {:keys [password-reset-link]}]
+  
+  ;  TODO "replace-password"
+  ; (reset-password [_ email old-password new-password {:keys [password-reset-link]}]
+  ;   (if (= (pr/fetch-by-password-recovery-link password-recovery-store password-reset-link))
+  ;     (if (account/correct-password? account-store email old-password (:hash-check-fn hash-fns))
+  ;       (account/update-password! account-store email new-password (:hash-fn hash-fns))
+  ;       ;; TODO: send email?
+  ;       (f/fail (t/locale [:error :core :wrong-pass])))
+  ;     (f/fail (t/locale [:error :core :expired-link]))))
+  
+  (reset-password [_ email new-password {:keys [password-reset-link]}]
     (if (= (pr/fetch-by-password-recovery-link password-recovery-store password-reset-link))
-      (if (account/correct-password? account-store email old-password (:hash-check-fn hash-fns))
-        (account/update-password! account-store email new-password (:hash-fn hash-fns))
+      
+      (account/update-password! account-store email new-password (:hash-fn hash-fns))
         ;; TODO: send email?
-        (f/fail (t/locale [:error :core :wrong-pass])))
+      
       (f/fail (t/locale [:error :core :expired-link]))))
 
   (list-accounts [_ params]
