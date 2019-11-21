@@ -96,25 +96,25 @@
                        {:email email
                         :name (:name account)
                         :other-names (:other-names account)}
-          ;; TODO: send email?
-          ;; TODO: waht to do after x amount of times? Maybe should be handled on server level?
+                       ;; TODO: send email?
+                       ;; TODO: waht to do after x amount of times? Maybe should be handled on server level?
                        (do
                          (fl/new-attempt! failed-login-store email ip-address)
                          (f/fail (t/locale [:error :core :wrong-pass]))))
                      (f/fail (t/locale [:error :core :not-active])))
                    (f/fail (str (t/locale [:error :core :account-not-found]) email)))
                  (f/when-failed [e]
-                                (log/error (f/message e))
-                                e)))
+                   (log/error (f/message e))
+                   e)))
 
 (s/defrecord EmailBasedAuthentication
-             [account-store :-  StoreSchema
-              password-recovery-store :- StoreSchema
-              failed-login-store :- StoreSchema
-              account-activator :- EmailMessagingSchema
-              password-recoverer :- EmailMessagingSchema
-              hash-fns :- HashFns
-              throttling-config :- ThrottlingConfig]
+    [account-store :-  StoreSchema
+     password-recovery-store :- StoreSchema
+     failed-login-store :- StoreSchema
+     account-activator :- EmailMessagingSchema
+     password-recoverer :- EmailMessagingSchema
+     hash-fns :- HashFns
+     throttling-config :- ThrottlingConfig]
 
   Authentication
   (send-activation-message [_ email {:keys [activation-uri]}]
@@ -129,8 +129,8 @@
                                                    :email email})]
             (log/info (str "Email <" email "> activation link: " activation-link))
             (f/if-let-ok? [_ (f/try* (m/email-and-update! account-activator email activation-link))]
-                          (merge account {:activation-link activation-link})
-                          (f/fail (t/locale [:error :core :not-sent])))))
+              (merge account {:activation-link activation-link})
+              (f/fail (t/locale [:error :core :not-sent])))))
         ;; TODO: send an email to that email
         (f/fail (str (t/locale [:error :core :account-not-found]) email)))))
 
@@ -145,8 +145,8 @@
                                                        :email email
                                                        :action "reset-password"})]
             (f/if-let-ok? [_ (f/try* (m/email-and-update! password-recoverer email password-reset-link))]
-                          account
-                          (f/fail (t/locale [:error :core :not-sent])))))
+              account
+              (f/fail (t/locale [:error :core :not-sent])))))
         ;; TODO: send an email to that email?
         (f/fail (str (t/locale [:error :core :account-not-found]) email)))))
 
@@ -227,10 +227,10 @@
 
 ;; This is meant for an implementation that doesnt use the email service but an atom instead
 (s/defrecord StubEmailBasedAuthentication
-             [account-activator :- EmailMessagingSchema
-              password-recoverer :- EmailMessagingSchema
-              failed-login-store :- StoreSchema
-              throttling-config :- ThrottlingConfig]
+    [account-activator :- EmailMessagingSchema
+     password-recoverer :- EmailMessagingSchema
+     failed-login-store :- StoreSchema
+     throttling-config :- ThrottlingConfig]
   Authentication
   (send-activation-message [_ email {:keys [activation-uri]}]
     (let [activation-id (fxc.core/generate 32)
