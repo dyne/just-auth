@@ -62,7 +62,7 @@
 
   (de-activate-account [this email password])
 
-  (reset-password [this email old-password new-password second-step-conf])
+  (reset-password [this email new-password second-step-conf])
 
   (list-accounts [this params]))
 
@@ -184,12 +184,9 @@
     ;; TODO
     )
 
-  (reset-password [_ email old-password new-password {:keys [password-reset-link]}]
+  (reset-password [_ email new-password {:keys [password-reset-link]}]
     (if (= (pr/fetch-by-password-recovery-link password-recovery-store password-reset-link))
-      (if (account/correct-password? account-store email old-password (:hash-check-fn hash-fns))
-        (account/update-password! account-store email new-password (:hash-fn hash-fns))
-        ;; TODO: send email?
-        (f/fail (t/locale [:error :core :wrong-pass])))
+      (account/update-password! account-store email new-password (:hash-fn hash-fns)) 
       (f/fail (t/locale [:error :core :expired-link]))))
 
   (list-accounts [_ params]
