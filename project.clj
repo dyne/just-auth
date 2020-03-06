@@ -7,7 +7,7 @@
             :year 2017
             :key "gpl-3.0"}
 
-  :dependencies [[org.clojure/clojure "1.8.0"]
+  :dependencies [[org.clojure/clojure "1.10.1"]
 
                  ;; logs
                  [com.taoensso/timbre "4.10.0"]
