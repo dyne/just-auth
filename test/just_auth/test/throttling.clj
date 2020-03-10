@@ -29,7 +29,7 @@
             [just-auth
              [throttling :as thr]
              [schema :as auth-schema]]
-            [clj-storage.test.db.test-db :as test-db]
+            [clj-storage.test.db.mongo.test-db :as test-db]
             [schema.core :as s]
             [taoensso.timbre :as log]))
 

@@ -28,7 +28,7 @@
              [account :as account]
              [just-auth :as auth-db]]
             [clj-storage.db.mongo :as mongo]
-            [clj-storage.test.db.test-db :as test-db]
+            [clj-storage.test.db.mongo.test-db :as test-db]
             [taoensso.timbre :as log]
             [buddy.hashers :as hashers]))
 
