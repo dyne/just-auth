@@ -23,7 +23,7 @@
 
 (ns just-auth.db.account
   (:require [clj-storage.core :as storage]
-            [monger.operators :refer [$addToSet $pull]]
+            [monger.operators :refer [$addToSet $pull $set]]
             [taoensso.timbre :as log]))
 
 ;; TODO shcema
@@ -40,7 +40,7 @@
                                     (update :password #(generate-hash % hash-fn)))))
 
 (defn activate! [account-store email]
-  (storage/update! account-store {:email email} #(assoc % :activated true)))
+  (storage/update! account-store {:email email} {$set {:activated true}}))
 
 (defn fetch [account-store email]
   (some-> (first (storage/query account-store {:email email} {}))
@@ -50,7 +50,7 @@
   (first (storage/query account-store {:activation-link activation-link} {})))
 
 (defn update-activation-link! [account-store email activation-link]
-  (storage/update! account-store {:email email} #(assoc % :activation-link activation-link)))
+  (storage/update! account-store {:email email} {$set {:activation-link activation-link}}))
 
 (defn delete! [account-store email]
   (storage/delete! account-store email))
@@ -61,7 +61,7 @@
    (:password (fetch account-store email))))
 
 (defn update-password! [account-store email password hash-fn]
-  (storage/update! account-store {:email email} #(assoc % :password (generate-hash password hash-fn))))
+  (storage/update! account-store {:email email} {$set {:password (generate-hash password hash-fn)}}))
 
 (defn add-flag! [account-store email flag]
   (storage/update! account-store {:email email} {$addToSet {:flags flag}}))

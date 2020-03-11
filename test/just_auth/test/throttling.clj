@@ -148,7 +148,7 @@
                                                     config
                                                     {:ip-address "ip-1"})]
                                        (class attempt) => failjure.core.Failure
-                                       (:message (log/spy attempt)) => "Blocked access for {:email nil}. Please contact the website admin." )
+                                       (:message attempt) => "Blocked access for {:email nil}. Please contact the website admin." )
 
                                      ;; 2 with same email was added on test above
                                      (:message (thr/throttle? (:failed-login-store stores)
