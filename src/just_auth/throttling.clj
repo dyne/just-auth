@@ -40,7 +40,7 @@
 (defn block? [failed-login-store time-window-secs threshold {:keys [ip-address email] :as criteria}]
   "This function checks where there are more failed attempts than a threshold given an ip, an email, none or both. It will return true when the failed attempts with the given criteria surpass the thr."
   (when (>
-         (fl/number-attempts failed-login-store time-window-secs criteria)
+         (log/spy (fl/number-attempts failed-login-store time-window-secs (log/spy criteria)))
          threshold)
     true))
 

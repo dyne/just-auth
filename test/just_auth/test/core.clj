@@ -42,8 +42,7 @@
                           :email-address "address"
                           :email-pass "pass"})
 
-(against-background [(before :contents (do (test-db/setup-db)
-                                           (test-db/get-datasource)))
+(against-background [(before :contents (test-db/setup-db))
                      (after :contents (ja/drop-auth-tables (test-db/get-datasource)))]
                     (fact "Can sign up using the real authenticator implementation and a real db"
                           (let [db (test-db/get-datasource)
