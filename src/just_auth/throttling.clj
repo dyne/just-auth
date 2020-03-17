@@ -3,7 +3,7 @@
 ;; part of Decentralized Citizen Engagement Technologies (D-CENT)
 ;; R&D funded by the European Commission (FP7/CAPS 610349)
 
-;; Copyright (C) 2017 Dyne.org foundation
+;; Copyright (C) 2017- Dyne.org foundation
 
 ;; Sourcecode designed, written and maintained by
 ;; Aspasia Beneti  <aspra@dyne.org>
@@ -52,7 +52,7 @@
                  delay-in-secs?)
         criteria (select-keys {:email email :ip-address ip-address}
                               (:criteria throttling-config))
-        result (thr-fn failed-login-store
+        result (thr-fn (log/spy failed-login-store)
                        (:time-window-secs throttling-config)
                        (:threshold throttling-config)
                        criteria)]

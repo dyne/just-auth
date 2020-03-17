@@ -70,5 +70,8 @@
 
 (defn create-in-memory-stores []
   (log/debug "Creating in memory stores for testing the authentication lib")
-  (storage/create-in-memory-stores (keys (stores-params-m []))))
+  (log/spy (clojure.set/rename-keys (storage/create-in-memory-stores (keys (stores-params-m [])))
+                                    {:account "account"
+                                     :passwordrecovery "passwordrecovery"
+                                     :failedlogin "failedlogin"})))
 

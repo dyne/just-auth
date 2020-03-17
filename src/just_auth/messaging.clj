@@ -108,7 +108,7 @@
   ([stores email-config]
    (new-stub-account-activator stores email-config (atom [])))
   ([stores email-config emails]
-   (->StubAccountActivator emails email-config (:account-store stores))))
+   (->StubAccountActivator emails email-config (get stores "account"))))
 
 (defrecord StubPasswordRecoverer [emails password-recovery-store]
   Email
@@ -120,6 +120,6 @@
 
 (defn new-stub-password-recoverer
   ([stores]
-   (new-stub-password-recoverer (:password-recovery-store stores) (atom [])))
+   (new-stub-password-recoverer (get stores "passwordrecovery") (atom [])))
   ([stores emails]
-   (->StubPasswordRecoverer emails (:password-recovery-store stores))))
+   (->StubPasswordRecoverer emails (get stores "passwordrecovery"))))

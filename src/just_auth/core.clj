@@ -89,7 +89,7 @@
 (s/defn attempt-sign-in
   [{:keys [failed-login-store account-store hash-fns throttling-config email password ip-address]}]
   (f/attempt-all [possible-attack (thr/throttle? failed-login-store throttling-config {:email email
-                                                                                       :ip-address ip-address})]
+                                                                                                 :ip-address ip-address})]
                  (if-let [account (account/fetch account-store email)]
                    (if (:activated account)
                      (if (account/correct-password? account-store email password (:hash-check-fn hash-fns))
@@ -201,9 +201,9 @@
    hash-fns :- HashFns
    throttling-config :- ThrottlingConfig]
   (s/validate just_auth.core.Authentication
-              (map->EmailBasedAuthentication {:account-store (:account-store stores)
-                                              :password-recovery-store (:password-recovery-store stores)
-                                              :failed-login-store (:failed-login-store stores)
+              (map->EmailBasedAuthentication {:account-store (get stores "account")
+                                              :password-recovery-store (get stores "passwordrecovery")
+                                              :failed-login-store (get stores "failedlogin")
                                               :password-recoverer password-recoverer
                                               :account-activator account-activator
                                               :hash-fns hash-fns
@@ -217,8 +217,8 @@
     (translation/init (env/env :auth-translation-fallback)
                       (env/env :auth-translation-language)))
   (new-email-based-authentication stores
-                                  (m/new-account-activator email-configuration (:account-store stores))
-                                  (m/new-password-recoverer email-configuration (:password-recovery-store stores))
+                                  (m/new-account-activator email-configuration (get stores "account"))
+                                  (m/new-password-recoverer email-configuration (get  stores "passwordrecovery"))
                                   u/sample-hash-fns
                                   throttling-config))
 
