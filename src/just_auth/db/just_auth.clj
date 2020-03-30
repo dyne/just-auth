@@ -30,20 +30,21 @@
             [taoensso.timbre :as log]))
 
 (def column-params-m {"account" ["ID INTEGER PRIMARY KEY AUTOINCREMENT"
-                                        "name VARCHAR(32) UNIQUE"
-                                        "email VARCHAR(32) UNIQUE"
-                                        "password VARCHAR(32) NOT NULL"
-                                        "flags VARCHAR(255)"
-                                        "othernames VARCHAR(255)"
-                                        "activated BOOLEAN DEFAULT 0"]
+                                 "name VARCHAR(32) UNIQUE"
+                                 "email VARCHAR(32) UNIQUE"
+                                 "password VARCHAR(32) NOT NULL"
+                                 "flags VARCHAR(255)"
+                                 "othernames VARCHAR(255)"
+                                 "activated BOOLEAN DEFAULT 0"
+                                 "createdate TEXT NOT NULL"]
                       "passwordrecovery" ["ID INTEGER PRIMARY KEY AUTOINCREMENT"
-                                                  "email VARCHAR(32) UNIQUE"
-                                                  "createdate TEXT NOT NULL"
-                                                  "recoverylink TEXT"]
+                                          "email VARCHAR(32) UNIQUE"
+                                          "createdate TEXT NOT NULL"
+                                          "recoverylink TEXT"]
                       "failedlogin" ["ID INTEGER PRIMARY KEY AUTOINCREMENT"
-                                             "email VARCHAR(32)"
-                                             "createdate TEXT NOT NULL"
-                                             "ipaddress TEXT"]})
+                                     "email VARCHAR(32)"
+                                     "createdate TEXT NOT NULL"
+                                     "ipaddress TEXT"]})
 
 (def failed-login-columns)
 
@@ -59,7 +60,7 @@
 
 
 (defn create-auth-stores [db & args]
-  (log/debug "Creating the authentication mongo stores")
+  (log/debug "Creating the authentication sqlite stores")
   (sqlite/create-sqlite-tables db (stores-params-m {}) column-params-m))
 
 (defn drop-auth-tables [db]

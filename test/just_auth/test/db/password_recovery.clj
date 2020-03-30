@@ -22,12 +22,11 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (ns just-auth.test.db.password-recovery
-  (:require [midje.sweet :refer :all]
+  (:require [midje.sweet :refer [fact => facts truthy against-background before after]]
             [just-auth.db 
              [password-recovery :as password-recovery]
              [account :as account]
              [just-auth :as auth-db]]
-            [clj-storage.db.mongo :as mongo]
             [clj-storage.test.db.sqlite.test-db :as test-db]
             [taoensso.timbre :as log]
             [buddy.hashers :as hashers]))

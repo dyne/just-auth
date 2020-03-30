@@ -30,6 +30,7 @@
             [just-auth
              [throttling :as thr]
              [schema :as auth-schema]]
+            [clj-storage.core :as storage]
             [clj-storage.test.db.sqlite.test-db :as test-db]
             [schema.core :as s]
             [taoensso.timbre :as log]))
@@ -54,43 +55,47 @@
                            (let [stores (auth-db/create-auth-stores
                                          (test-db/get-datasource))]
                              (doseq [attempt failed-attempts]
-                               (log/spy (fl/new-attempt! (get stores "failedlogin")
-                                                         (:email attempt)
-                                                         (:ipaddress attempt))))                             
+                               (fl/new-attempt! (get stores "failedlogin")
+                                                (:email attempt)
+                                                (:ipaddress attempt)))
+                             
+                             #_(fact "Check inserted entries and dates"
+                                     (storage/query (get stores "failedlogin") {} {}) => [])
+                             
                              (fact "Check that block returns true when the number of attempts according to criteria surpass the thr"
                                    (thr/block? (get stores "failedlogin")
                                                10
                                                2
                                                {:ipaddress "ip-1"}) => truthy
-                                   (comment (thr/block? (get stores "failedlogin")
-                                                        10
-                                                        2
-                                                        {:ipaddress "ip-4"}) => falsey
-                                            (thr/block? (get stores "failedlogin")
-                                                        10
-                                                        2
-                                                        {}) => truthy
-                                            (thr/block? (get stores  "failedlogin")
-                                                        10
-                                                        10
-                                                        {}) => falsey
-                                            (thr/block? (get stores "failedlogin")
-                                                        10
-                                                        1
-                                                        {:ipaddress "ip-1"
-                                                         :email "email-1"}) => truthy
-                                            (thr/block? (get stores "failedlogin")
-                                                        10
-                                                        2
-                                                        {:ipaddress "ip-1"
-                                                         :email "email-1"}) => falsey
-                                            ;; Check that time gets "renewed"
-                                            (Thread/sleep 1000)
-                                            (thr/block? (get stores "failedlogin")
-                                                        1
-                                                        2
-                                                        {:ipaddress "ip-1"}) => falsey))
-                             #_(fact "Check that delay-in-secs returns the right amout of seconds when the number of attempts according to criteria surpass the thr"
+                                   (thr/block? (get stores "failedlogin")
+                                               10
+                                               2
+                                               {:ipaddress "ip-4"}) => falsey
+                                   (thr/block? (get stores "failedlogin")
+                                               10
+                                               2
+                                               {}) => truthy
+                                   (thr/block? (get stores  "failedlogin")
+                                               10
+                                               10
+                                               {}) => falsey
+                                   (thr/block? (get stores "failedlogin")
+                                               10
+                                               1
+                                               {:ipaddress "ip-1"
+                                                :email "email-1"}) => truthy
+                                   (thr/block? (get stores "failedlogin")
+                                               10
+                                               2
+                                               {:ipaddress "ip-1"
+                                                :email "email-1"}) => falsey
+                                   ;; Check that time gets "renewed"
+                                   (Thread/sleep 1000)
+                                   (thr/block? (get stores "failedlogin")
+                                               1
+                                               2
+                                               {:ipaddress "ip-1"}) => falsey)
+                             (fact "Check that delay-in-secs returns the right amout of seconds when the number of attempts according to criteria surpass the thr"
                                    (thr/delay-in-secs? (get stores "failedlogin")
                                                        10
                                                        2
@@ -118,7 +123,7 @@
                                                        {:ipaddress "ip-1"
                                                         :email "email-1"}) => falsey)
 
-                             #_(fact "Check that throttle returns errors when needed"
+                             (fact "Check that throttle returns errors when needed"
                                    (let [config {:criteria #{:email} 
                                                  :type :block
                                                  :time-window-secs 10

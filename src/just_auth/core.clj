@@ -88,8 +88,8 @@
 
 (s/defn attempt-sign-in
   [{:keys [failed-login-store account-store hash-fns throttling-config email password ip-address]}]
-  (f/attempt-all [possible-attack (thr/throttle? failed-login-store throttling-config {:email email
-                                                                                                 :ip-address ip-address})]
+  (f/attempt-all [possible-attack (log/spy (thr/throttle? failed-login-store throttling-config {:email email
+                                                                                                :ip-address ip-address}))]
                  (if-let [account (account/fetch account-store email)]
                    (if (:activated account)
                      (if (account/correct-password? account-store email password (:hash-check-fn hash-fns))

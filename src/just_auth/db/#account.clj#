@@ -64,7 +64,7 @@
   (storage/update! account-store {:account/email email} {$set {:account/password (generate-hash password hash-fn)}}))
 
 (defn add-flag! [account-store email flag]
-  (storage/update! account-store {:email email} {$addToSet {:flags flag}}))
+  (storage/update! account-store ["EMAIL >= ?" email] "FLAGS = )" {:account/email email} {$addToSet {:account/flags flag}}))
 
 (defn remove-flag! [account-store email flag]
   (storage/update! account-store {:account/email email} {$pull {:account/flags flag}}))

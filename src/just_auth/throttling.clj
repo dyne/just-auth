@@ -40,7 +40,7 @@
 (defn block? [failed-login-store time-window-secs threshold {:keys [ip-address email] :as criteria}]
   "This function checks where there are more failed attempts than a threshold given an ip, an email, none or both. It will return true when the failed attempts with the given criteria surpass the thr."
   (when (>
-         (log/spy (fl/number-attempts failed-login-store time-window-secs (log/spy criteria)))
+         (fl/number-attempts failed-login-store time-window-secs criteria)
          threshold)
     true))
 
@@ -52,11 +52,11 @@
                  delay-in-secs?)
         criteria (select-keys {:email email :ip-address ip-address}
                               (:criteria throttling-config))
-        result (thr-fn (log/spy failed-login-store)
-                       (:time-window-secs throttling-config)
-                       (:threshold throttling-config)
+        result ((log/spy thr-fn) failed-login-store
+                (log/spy (:time-window-secs throttling-config))
+                (log/spy (:threshold throttling-config))
                        criteria)]
-    (cond  (= result true)
+    (cond  (= (log/spy result) true)
            (f/fail (str "Blocked access for " criteria ". Please contact the website admin."))
            (number? result)
            (f/fail (str "Suspicious behaviour for " criteria ". Retry again in " result " seconds")))))
