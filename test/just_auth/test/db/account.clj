@@ -37,38 +37,35 @@
                           stores-m (ja/create-auth-stores db)
                           account-store (get stores-m "account")]
                       (facts "Create an account"
-                             (let [flag :admin
-                                   first-name "a-user"
+                             (let [first-name "a-user"
                                    last-name "user-surname"
                                    email "user@mail.com"
-                                   pswrd "a-password"
-                                   user-account (log/spy (account/new-account! account-store
-                                                                               {:name (str first-name " " last-name)
-                                                                                :email email
-                                                                                :password pswrd}
-                                                                               hashers/derive))]
-                               
+                                   pswrd "a-password"]
+
+                               (fact "Can create an account"
+                                     (account/new-account! account-store
+                                                           {:name (str first-name " " last-name)
+                                                            :email email
+                                                            :password pswrd}
+                                                           hashers/derive) => truthy)
                                (fact "An empty flag vector is created"
                                      (dissoc (account/fetch account-store email) :account/password :account/createdate :account/id) => {:account/ID 1
                                                                                                                                         :account/activated 0
                                                                                                                                         :account/email "user@mail.com"
-                                                                                                                                        :account/flags '()
+                                                                                                                                        :account/flags []
                                                                                                                                         :account/name "a-user user-surname"
                                                                                                                                         :account/othernames nil}
                                      
-                                     (:account/flags (account/fetch account-store email)) => '())
+                                     (:account/flags (account/fetch account-store email)) => [])
 
                                (fact "Can add a flag"
-                                     (account/add-flag! account-store email :admin)
-                                     (:flags (account/fetch account-store email))  => [:admin]
+                                     (account/add-flag! account-store email "admin")
+                                     (:account/flags (account/fetch account-store email))  => [:admin])
 
-                                     ;; This could be a bug - have posted a question https://stackoverflow.com/questions/45677891/keyword-item-in-moger-vector-is-converted-to-string
-                                     ;; UPDATE: manually converted to a keyword
-                                     (fact "Caution!! Mongo converts the keywords to a string"
-                                           (-> (account/fetch account-store email)
-                                               :flags
-                                               (first))  => flag))
+                               (fact "Can add another flag"
+                                     (account/add-flag! account-store email "group1")
+                                     (:account/flags (account/fetch account-store email)) => [:admin :group1])
 
-                               #_(fact "Can remove a flag"
+                               (fact "Can remove a flag"
                                      (account/remove-flag! account-store email "admin")
-                                     (:flags (account/fetch account-store email)) => [])))))
+                                     (:account/flags (account/fetch account-store email)) => [:group1])))))

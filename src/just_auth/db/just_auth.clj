@@ -33,8 +33,8 @@
                                  "name VARCHAR(32) UNIQUE"
                                  "email VARCHAR(32) UNIQUE"
                                  "password VARCHAR(32) NOT NULL"
-                                 "flags VARCHAR(255)"
                                  "othernames VARCHAR(255)"
+                                 "flags VARCHAR(255) NOT NULL"
                                  "activated BOOLEAN DEFAULT 0"
                                  "createdate TEXT NOT NULL"]
                       "passwordrecovery" ["ID INTEGER PRIMARY KEY AUTOINCREMENT"

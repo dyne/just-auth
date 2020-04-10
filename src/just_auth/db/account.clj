@@ -23,7 +23,7 @@
 
 (ns just-auth.db.account
   (:require [clj-storage.core :as storage]
-            [monger.operators :refer [$addToSet $pull $set]]
+            [clojure.string :as str]
             [taoensso.timbre :as log]))
 
 ;; TODO shcema
@@ -34,23 +34,26 @@
   [account-store
    {:keys [name email password flags other-names activated] :as account-map}
    hash-fn]
-  (storage/store! account-store (log/spy (-> account-map
-                                             (assoc :activated (or activated false))
-                                             (assoc :flags (log/spy (or (str flags) nil)))
-                                             (update :password #(generate-hash % hash-fn))))))
+  (storage/store! account-store (-> account-map
+                                    (assoc :activated (or activated false))
+                                    (assoc :flags (or flags ""))
+                                    (update :password #(generate-hash % hash-fn)))))
 
 (defn activate! [account-store email]
   (storage/update! account-store {:account/email email} {$set {:account/activated true}}))
 
 (defn fetch [account-store email]
   (some-> (first (storage/query account-store {:account/email email} {}))
-          (update :account/flags (fn [flags] (map #(keyword %) flags)))))
+          (update :account/flags (fn [flags]
+                                   (if (str/blank? flags)
+                                     []
+                                     (mapv #(keyword %) (str/split flags #" ")))))))
 
 (defn fetch-by-activation-link [account-store activation-link]
   (first (storage/query account-store {:account/activation-link activation-link} {})))
 
 (defn update-activation-link! [account-store email activation-link]
-  (storage/update! account-store {:account/email email} {$set {:account/activation-link activation-link}}))
+  (storage/update! account-store {:account/email email} {:account/activation-link activation-link}))
 
 (defn delete! [account-store email]
   (storage/delete! account-store email))
@@ -61,13 +64,13 @@
    (:account/password (fetch account-store email))))
 
 (defn update-password! [account-store email password hash-fn]
-  (storage/update! account-store {:account/email email} {$set {:account/password (generate-hash password hash-fn)}}))
+  (storage/update! account-store {:account/email email} {:account/password (generate-hash password hash-fn)}))
 
 (defn add-flag! [account-store email flag]
-  (storage/update! account-store {:email email} {$addToSet {:flags flag}}))
+  (storage/update! account-store {:ACCOUNT/EMAIL email} (str "FLAGS = FLAGS || '" flag " '")))
 
 (defn remove-flag! [account-store email flag]
-  (storage/update! account-store {:account/email email} {$pull {:account/flags flag}}))
+  (storage/update! account-store {:account/email email} (str "FLAGS = REPLACE(FLAGS,'" flag " ','')")))
 
 (defn list-accounts [account-store params]
   (storage/query account-store params {}))
