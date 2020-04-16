@@ -40,7 +40,7 @@
                                     (update :password #(generate-hash % hash-fn)))))
 
 (defn activate! [account-store email]
-  (storage/update! account-store {:account/email email} {$set {:account/activated true}}))
+  (storage/update! account-store {:account/email email} {:account/activated true}))
 
 (defn fetch [account-store email]
   (some-> (first (storage/query account-store {:account/email email} {}))
