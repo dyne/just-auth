@@ -38,6 +38,6 @@
                                         :createdate created-at
                                         :ipaddress ip-address})))
 
-(defn number-attempts [failed-login-store time-window-secs {:keys [email ip-address] :as formula}]
+(defn number-attempts [failed-login-store time-window-secs {:keys [email ipaddress] :as formula}]
   (let [from-date-time (dt/minus- (dt/now) (dt/seconds time-window-secs))]
     (sql/count-since failed-login-store (c/to-timestamp from-date-time) formula)))

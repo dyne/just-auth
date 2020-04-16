@@ -3,7 +3,7 @@
 ;; part of Decentralized Citizen Engagement Technologies (D-CENT)
 ;; R&D funded by the European Commission (FP7/CAPS 610349)
 
-;; Copyright (C) 2017 Dyne.org foundation
+;; Copyright (C) 2017- Dyne.org foundation
 
 ;; Sourcecode designed, written and maintained by
 ;; Aspasia Beneti <aspra@dyne.org>
@@ -22,49 +22,49 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (ns just-auth.test.db.failed-login
-  (:require [midje.sweet :refer :all]
+  (:require [midje.sweet :refer [fact => facts truthy against-background before after]]
             [just-auth.db 
              [failed-login :as fl]
-             [just-auth :as auth-db]]
-            [clj-storage.db.mongo :as mongo]
-            [clj-storage.test.db.mongo.test-db :as test-db]
+             [just-auth :as ja]]
+            [clj-storage.test.db.sqlite.test-db :as test-db]
             [taoensso.timbre :as log]))
 
 (def failed-attempts [{:email "email-1"
-                       :ip-address "ip-1"}
+                       :ipaddress "ip-1"}
                       {:email "email-1"
-                       :ip-address "ip-1"}
+                       :ipaddress "ip-1"}
                       {:email "email-2"
-                       :ip-address "ip-1"}
+                       :ipaddress "ip-1"}
                       {:email "email-3"
-                       :ip-address "ip-3"}
+                       :ipaddress "ip-3"}
                       {:email "email-4"
-                       :ip-address "ip-4"}
+                       :ipaddress "ip-4"}
                       {}
                       {:email "email-4"}])
 
 (against-background [(before :contents (test-db/setup-db))
-                     (after :contents (test-db/teardown-db))]
+                     (after :contents (ja/drop-auth-tables (test-db/get-datasource)))]
                     
                     (facts "Create some failed attempts" 
-                           (let [stores (auth-db/create-auth-stores
-                                         (test-db/get-test-db))]
+                           (let [stores (ja/create-auth-stores
+                                         (test-db/get-datasource))
+                                 failed-login-store (get stores "failedlogin")]
                              (doseq [attempt failed-attempts]
-                               (fl/new-attempt! (:failed-login-store stores)
+                               (fl/new-attempt! failed-login-store
                                                 (:email attempt)
-                                                (:ip-address attempt)))
+                                                (:ipaddress attempt)))
                              (fact "Count the number of all failed attempts the last 10 seconds"
-                                   (fl/number-attempts (-> stores :failed-login-store)
+                                   (fl/number-attempts failed-login-store
                                                        10
                                                        {}) => (count failed-attempts)
 
-                                   (fl/number-attempts (-> stores :failed-login-store)
+                                   (fl/number-attempts failed-login-store
                                                        10
                                                        {:email "email-1"}) => (count (filter (comp (partial = "email-1") :email) failed-attempts))
 
-                                   (fl/number-attempts (-> stores :failed-login-store)
+                                   (fl/number-attempts failed-login-store
                                                        10
-                                                       {:ip-address "ip-1"})  => (count (filter (comp (partial = "ip-1") :ip-address) failed-attempts))
-                                   (fl/number-attempts (-> stores :failed-login-store)
+                                                       {:ipaddress "ip-1"})  => (count (filter (comp (partial = "ip-1") :ipaddress) failed-attempts))
+                                   (fl/number-attempts failed-login-store
                                                        0
                                                        {}) => 0))))
