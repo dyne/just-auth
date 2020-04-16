@@ -31,10 +31,8 @@
              [just-auth :as ja]
              [account :as account]
              [just-auth :as auth-db]]
-            [schema.core :as s]
             [taoensso.timbre :as log]
             [failjure.core :as f]
-            [environ.core :as env]
             [clj-storage.test.db.sqlite.test-db :as test-db]))
 
 (def email-configuration {:email-server "server"
