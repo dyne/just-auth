@@ -61,7 +61,7 @@
 
 (defn create-auth-stores [db & args]
   (log/debug "Creating the authentication sqlite stores")
-  (sqlite/create-sqlite-tables db (stores-params-m {}) column-params-m))
+  (sqlite/create-sqlite-tables db (stores-params-m args) column-params-m))
 
 (defn drop-auth-tables [db]
   (log/debug "Dropping the authentication sqlite tables")
