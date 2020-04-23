@@ -59,9 +59,8 @@
                                                 (:email attempt)
                                                 (:ipaddress attempt)))
                              
-                             #_(fact "Check inserted entries and dates"
-                                     (storage/query (get stores "failedlogin") {} {}) => [])
-                             
+                             (fact "Check inserted entries and dates"
+                                   (count (storage/query (get stores "failedlogin") {} {})) => 7)                            
                              (fact "Check that block returns true when the number of attempts according to criteria surpass the thr"
                                    (thr/block? (get stores "failedlogin")
                                                10
@@ -124,54 +123,53 @@
                                                         :email "email-1"}) => falsey)
 
                              (fact "Check that throttle returns errors when needed"
-                                   (let [config {:criteria #{:email} 
-                                                 :type :block
-                                                 :time-window-secs 10
-                                                 :threshold 1}
-                                         config-2 {:criteria #{:email} 
-                                                   :type :delay
+                                     (let [config {:criteria #{:email} 
+                                                   :type :block
                                                    :time-window-secs 10
                                                    :threshold 1}
-                                         config-3 {:criteria #{:ipaddress} 
-                                                   :type :delay
-                                                   :time-window-secs 10
-                                                   :threshold 1}]
-                                     (s/validate auth-schema/ThrottlingConfig config) => truthy
+                                           config-2 {:criteria #{:email} 
+                                                     :type :delay
+                                                     :time-window-secs 10
+                                                     :threshold 1}
+                                           config-3 {:criteria #{:ipaddress} 
+                                                     :type :delay
+                                                     :time-window-secs 10
+                                                     :threshold 1}]
+                                       (s/validate auth-schema/ThrottlingConfig config) => truthy
 
-                                     ;; No throttling yet
-                                     (thr/throttle? (get stores "failedlogin")
-                                                    config
-                                                    {:ipaddress "ip-1"})
-                                     => nil
-                                     
-                                     ;; Store it
-                                     (fl/new-attempt! (get stores "failedlogin")
-                                                      nil
-                                                      (:ipaddress "ip-1"))
+                                       ;; No throttling yet
+                                       (thr/throttle? (get stores "failedlogin")
+                                                      config
+                                                      {:ipaddress "ip-1"})
+                                       => nil
+                                       
+                                       ;; Store it
+                                       (fl/new-attempt! (get stores "failedlogin")
+                                                        nil
+                                                        (:ipaddress "ip-1"))
 
-                                     (let [attempt (thr/throttle?
-                                                    (get stores "failedlogin")
-                                                    config
-                                                    {:ipaddress "ip-1"})]
-                                       (class attempt) => failjure.core.Failure
-                                       (:message attempt) => "Blocked access for {:email nil}. Please contact the website admin." )
+                                       (let [attempt (thr/throttle?
+                                                      (get stores "failedlogin")
+                                                      config
+                                                      {:ipaddress "ip-1"})]
+                                         (class attempt) => failjure.core.Failure
+                                         (:message attempt) => "Blocked access for {:email nil}. Please contact the website admin."
+                                         ;; 2 with same email was added on test above
+                                         (:message (thr/throttle? (get stores "failedlogin")
+                                                                  config
+                                                                  {:ipaddress "ip-1"
+                                                                   :email "email-1"}))
+                                         => "Blocked access for {:email \"email-1\"}. Please contact the website admin."
 
-                                     ;; 2 with same email was added on test above
-                                     (:message (thr/throttle? (get stores "failedlogin")
-                                                              config
-                                                              {:ipaddress "ip-1"
-                                                               :email "email-1"}))
-                                     => "Blocked access for {:email \"email-1\"}. Please contact the website admin."
-
-                                     ;; Try the same but now with delay instead of block
-                                     (:message (thr/throttle? (get stores "failedlogin")
-                                                              config-2
-                                                              {:ipaddress "ip-1"
-                                                               :email "email-1"}))
-                                     => "Suspicious behaviour for {:email \"email-1\"}. Retry again in 2 seconds"
-                                     ;; And now with the ip as criteria
-                                     (:message (thr/throttle? (get stores "failedlogin")
-                                                              config-3
-                                                              {:ipaddress "ip-1"
-                                                               :email "email-1"}))
-                                     => "Suspicious behaviour for {:ip-address \"ip-1\"}. Retry again in 4 seconds")))))
+                                         ;; Try the same but now with delay instead of block
+                                         (:message (thr/throttle? (get stores "failedlogin")
+                                                                  config-2
+                                                                  {:ipaddress "ip-1"
+                                                                   :email "email-1"}))
+                                         => "Suspicious behaviour for {:email \"email-1\"}. Retry again in 2 seconds"
+                                         ;; And now with the ip as criteria
+                                         (:message (thr/throttle? (get stores "failedlogin")
+                                                                  config-3
+                                                                  {:ipaddress "ip-1"
+                                                                   :email "email-1"}))
+                                         => "Suspicious behaviour for {:ipaddress \"ip-1\"}. Retry again in 4 seconds"))))))
