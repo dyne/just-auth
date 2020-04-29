@@ -23,27 +23,58 @@
 
 (ns just-auth.db.just-auth
   (:require [clj-storage.core :as storage]
-            [clj-storage.db.mongo :as mongo]
+            [clj-storage.db.sqlite :as sqlite]
+            [clj-storage.db.sqlite.queries :as q]
+            
+            [next.jdbc :as jdbc]
             [taoensso.timbre :as log]))
+
+(def column-params-m {"account" ["ID INTEGER PRIMARY KEY AUTOINCREMENT"
+                                 "name VARCHAR(32) UNIQUE"
+                                 "email VARCHAR(32) UNIQUE"
+                                 "password VARCHAR(32) NOT NULL"
+                                 "othernames VARCHAR(255)"
+                                 "flags VARCHAR(255) NOT NULL"
+                                 "activated BOOLEAN DEFAULT 0"
+                                 "createdate TEXT NOT NULL"
+                                 "activationuri TEXT"
+                                 "activationlink TEXT"]
+                      "passwordrecovery" ["ID INTEGER PRIMARY KEY AUTOINCREMENT"
+                                          "email VARCHAR(32) UNIQUE"
+                                          "createdate TEXT NOT NULL"
+                                          "recoverylink TEXT"]
+                      "failedlogin" ["ID INTEGER PRIMARY KEY AUTOINCREMENT"
+                                     "email VARCHAR(32)"
+                                     "createdate TEXT NOT NULL"
+                                     "ipaddress TEXT"]})
+
+(def failed-login-columns)
 
 (defn stores-params-m [args]
   (when-not (:ttl-password-recovery (first args))
     (log/warn "No password expiration time was set, defaulting to 1800 seconds"))
-  {"account-store" {}
-   "password-recovery-store" {:expireAfterSeconds (if-let [arg-map (first args)]
+  {"account" {}
+   "passwordrecovery" {:expireAfterSeconds (if-let [arg-map (first args)]
                                                     (:ttl-password-recovery arg-map)
                                                     1800)}
-   "failed-login-store" {}})
+   "failedlogin" {}})
 
 
 
 (defn create-auth-stores [db & args]
-  (log/debug "Creating the authentication mongo stores")
-  (mongo/create-mongo-stores
-   db
-   (stores-params-m args)))
+  (log/debug "Creating the authentication sqlite stores")
+  (sqlite/create-sqlite-tables db (stores-params-m args) column-params-m))
+
+(defn drop-auth-tables [db]
+  (log/debug "Dropping the authentication sqlite tables")
+  (jdbc/execute-one! db [(q/drop-table "account")])
+  (jdbc/execute-one! db [(q/drop-table "passwordrecovery")])
+  (jdbc/execute-one! db [(q/drop-table "failedlogin")]))
 
 (defn create-in-memory-stores []
   (log/debug "Creating in memory stores for testing the authentication lib")
-  (storage/create-in-memory-stores (keys (stores-params-m []))))
+  (log/spy (clojure.set/rename-keys (storage/create-in-memory-stores (keys (stores-params-m [])))
+                                    {:account "account"
+                                     :passwordrecovery "passwordrecovery"
+                                     :failedlogin "failedlogin"})))
 

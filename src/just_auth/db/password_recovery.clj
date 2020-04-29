@@ -23,17 +23,17 @@
 
 (ns just-auth.db.password-recovery
   (:require [clj-storage.core :as storage]
-            [buddy.hashers :as hashers]
+            [clj-time.core :as dt]
             [taoensso.timbre :as log]))
 
 (defn new-entry!
   [password-recovery-store email recovery-link]
   (storage/store! password-recovery-store {:email email
-                                           :created-at (java.util.Date.)
-                                           :recovery-link recovery-link}))
+                                           :createdate (dt/now)
+                                           :recoverylink recovery-link}))
 
 (defn fetch-by-password-recovery-link [password-recovery-store recovery-link]
-  (first (storage/query password-recovery-store {:recovery-link recovery-link} {})))
+  (first (storage/query password-recovery-store {:recoverylink recovery-link} {})))
 
 (defn fetch [password-recovery-store email]
   (storage/query password-recovery-store {:email email} {}))
