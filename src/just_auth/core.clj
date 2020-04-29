@@ -47,7 +47,7 @@
 
 (defprotocol Authentication
   ;; About names http://www.kalzumeus.com/2010/06/17/falsehoods-programmers-believe-about-name
-  (sign-up [this name email password second-step-conf other-names])
+  (sign-up [this name email password second-step-conf othernames])
 
   (sign-in [this email password args])
 
@@ -70,7 +70,7 @@
   [authenticator :- just_auth.core.Authentication
    account-store :- StoreSchema
    {:keys [name
-           other-names
+           othernames
            email
            password 
            activation-uri]} :- EmailSignUp
@@ -82,24 +82,24 @@
                               (cond-> {:name name
                                        :email email
                                        :password password}
-                                other-names (assoc :other-names other-names))
+                                othernames (assoc :othernames othernames))
                               (:hash-fn hash-fns))
-        (send-activation-message authenticator email {:activation-uri activation-uri}))))
+        (send-activation-message authenticator email {:activationuri activation-uri}))))
 
 (s/defn attempt-sign-in
-  [{:keys [failed-login-store account-store hash-fns throttling-config email password ip-address]}]
+  [{:keys [failed-login-store account-store hash-fns throttling-config email password ipaddress]}]
   (f/attempt-all [possible-attack (thr/throttle? failed-login-store throttling-config {:email email
-                                                                                       :ip-address ip-address})]
+                                                                                       :ipaddress ipaddress})]
                  (if-let [account (account/fetch account-store email)]
-                   (if (:activated account)
+                   (if (= 1 (:account/activated account))
                      (if (account/correct-password? account-store email password (:hash-check-fn hash-fns))
                        {:email email
-                        :name (:name account)
-                        :other-names (:other-names account)}
+                        :name (:account/name account)
+                        :othernames (clojure.edn/read-string (:account/othernames account))}
                        ;; TODO: send email?
                        ;; TODO: waht to do after x amount of times? Maybe should be handled on server level?
                        (do
-                         (fl/new-attempt! failed-login-store email ip-address)
+                         (fl/new-attempt! failed-login-store email ipaddress)
                          (f/fail (t/locale [:error :core :wrong-pass]))))
                      (f/fail (t/locale [:error :core :not-active])))
                    (f/fail (str (t/locale [:error :core :account-not-found]) email)))
@@ -123,13 +123,13 @@
         (if (:activated account)
           (f/fail (t/locale [:error :core :already-active]))
           (let [activation-id (fxc.core/generate 32)
-                activation-link (u/construct-link {:uri activation-uri
+                activationlink (u/construct-link {:uri activation-uri
                                                    :action "activate"
                                                    :token activation-id
                                                    :email email})]
-            (log/info (str "Email <" email "> activation link: " activation-link))
-            (f/if-let-ok? [_ (f/try* (m/email-and-update! account-activator email activation-link))]
-              (merge account {:activation-link activation-link})
+            (log/info (str "Email <" email "> activation link: " activationlink))
+            (f/if-let-ok? [_ (f/try* (m/email-and-update! account-activator email activationlink))]
+              (merge account {:activationlink activationlink})
               (f/fail (t/locale [:error :core :not-sent])))))
         ;; TODO: send an email to that email
         (f/fail (str (t/locale [:error :core :account-not-found]) email)))))
@@ -150,21 +150,21 @@
         ;; TODO: send an email to that email?
         (f/fail (str (t/locale [:error :core :account-not-found]) email)))))
   
-  (sign-up [this name email password {:keys [activation-uri]} other-names]
+  (sign-up [this name email password {:keys [activation-uri]} othernames]
     (sign-up-with-email this account-store {:name name
-                                            :other-names other-names
+                                            :othernames othernames
                                             :email email
                                             :password password
-                                            :activation-uri activation-uri} hash-fns))
+                                            :activationuri activation-uri} hash-fns))
   
-  (sign-in [_ email password {:keys [ip-address]}]
+  (sign-in [_ email password {:keys [ipaddress]}]
     (attempt-sign-in {:failed-login-store failed-login-store
                       :account-store account-store
                       :hash-fns hash-fns
                       :throttling-config throttling-config
                       :email email
                       :password password
-                      :ip-address ip-address}))
+                      :ipaddress ipaddress}))
 
   (get-account [_ email]
     (let [account (account/fetch account-store email)]
@@ -201,9 +201,9 @@
    hash-fns :- HashFns
    throttling-config :- ThrottlingConfig]
   (s/validate just_auth.core.Authentication
-              (map->EmailBasedAuthentication {:account-store (:account-store stores)
-                                              :password-recovery-store (:password-recovery-store stores)
-                                              :failed-login-store (:failed-login-store stores)
+              (map->EmailBasedAuthentication {:account-store (get stores "account")
+                                              :password-recovery-store (get stores "passwordrecovery")
+                                              :failed-login-store (get stores "failedlogin")
                                               :password-recoverer password-recoverer
                                               :account-activator account-activator
                                               :hash-fns hash-fns
@@ -217,8 +217,8 @@
     (translation/init (env/env :auth-translation-fallback)
                       (env/env :auth-translation-language)))
   (new-email-based-authentication stores
-                                  (m/new-account-activator email-configuration (:account-store stores))
-                                  (m/new-password-recoverer email-configuration (:password-recovery-store stores))
+                                  (m/new-account-activator email-configuration (get stores "account"))
+                                  (m/new-password-recoverer email-configuration (get  stores "passwordrecovery"))
                                   u/sample-hash-fns
                                   throttling-config))
 
@@ -237,23 +237,23 @@
                                              :email email})]
       (m/email-and-update! account-activator email activation-link)))
   
-  (sign-up [this name email password second-step-conf other-names]
+  (sign-up [this name email password second-step-conf othernames]
     (account/new-account! (:account-store account-activator)
                           (cond-> {:name name
                                    :email email
                                    :password password}
-                            other-names (assoc :other-names other-names))
+                            othernames (assoc :othernames othernames))
                           (:hash-fn u/sample-hash-fns))
     (send-activation-message this email second-step-conf))
 
-  (sign-in [_ email password {:keys [ip-address]}] 
+  (sign-in [_ email password {:keys [ipaddress]}] 
     (attempt-sign-in {:failed-login-store failed-login-store
                       :account-store (:account-store account-activator)
                       :hash-fns u/sample-hash-fns
                       :throttling-config throttling-config
                       :email email
                       :password password
-                      :ip-address ip-address}))
+                      :ipaddress ipaddress}))
 
   (get-account [_ email]
     (let [account (account/fetch
@@ -288,5 +288,5 @@
                       (env/env :auth-translation-language)))
   (map->StubEmailBasedAuthentication {:account-activator (m/new-stub-account-activator stores email-configuration emails)
                                       :password-recoverer (m/new-stub-password-recoverer stores emails)
-                                      :failed-login-store (:failed-login-store stores)
+                                      :failed-login-store (get stores "failedlogin")
                                       :throttling-config throttling-config}))

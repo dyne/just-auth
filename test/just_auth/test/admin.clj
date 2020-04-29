@@ -21,50 +21,53 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 (ns just-auth.test.admin
-  (:require [midje.sweet :refer :all]
+  (:require [midje.sweet :refer [against-background before after fact truthy =>]]
             [just-auth
              [core  :as auth-lib]
              [schema :as schema]
              [messaging :as m]
              [util :as u]]
             [just-auth.db
+             [just-auth :as ja]
              [account :as account]
              [just-auth :as auth-db]]
             [schema.core :as s]
             [taoensso.timbre :as log]
             [failjure.core :as f]
-            [clj-storage.test.db.mongo.test-db :as test-db]))
+            [clj-storage.test.db.sqlite.test-db :as test-db]))
 
 (def emails (atom []))
 (def user-email "user@mail.com")
 (def admin-email "admin@mail.com")
 
-(fact "Check using a stub implementation the effect of the admin absence"
-      (let [stores-m (auth-db/create-in-memory-stores)
-             hash-fns u/sample-hash-fns
-             email-authenticator (auth-lib/new-stub-email-based-authentication
-                                  stores-m
-                                  emails
-                                  {}
-                                  {:criteria #{:email} 
-                                   :type :block
-                                   :time-window-secs 10
-                                   :threshold 5})]
+(against-background [(before :contents (do (test-db/setup-db)
+                                           (test-db/get-datasource)))]
+                    (fact "Check using a stub implementation the effect of the admin absence"
+                          (let [stores-m (auth-db/create-in-memory-stores)
+                                hash-fns u/sample-hash-fns
+                                email-authenticator (auth-lib/new-stub-email-based-authentication
+                                                     stores-m
+                                                     emails
+                                                     {}
+                                                     {:criteria #{:email} 
+                                                      :type :block
+                                                      :time-window-secs 10
+                                                      :threshold 5})]
 
-         (f/ok? email-authenticator) => truthy 
+                            (f/ok? email-authenticator) => truthy 
 
-         (s/validate schema/HashFns hash-fns) => truthy
+                            (s/validate schema/HashFns hash-fns) => truthy
 
-         (fact "When there is no admin included the activation email is sent to the user."
-               (let [uri "http://test.com"
-                     password "12345678"
-                     created-account (auth-lib/sign-up email-authenticator
-                                                       "Some name"
-                                                       user-email
-                                                       password
-                                                       {:activation-uri uri}
-                                                       ["nickname"])] 
-                 (-> @emails last :email) => user-email))))
+                            (fact "When there is no admin included the activation email is sent to the user."
+                                  (let [uri "http://test.com"
+                                        password "12345678"
+                                        created-account (auth-lib/sign-up email-authenticator
+                                                                          "Some name"
+                                                                          user-email
+                                                                          password
+                                                                          {:activation-uri uri}
+                                                                          ["nickname"])] 
+                                    (-> @emails last :email) => user-email)))))
 
 (fact "Check using a stub implementation the effect of the admin absence"
       (let [stores-m (auth-db/create-in-memory-stores)
