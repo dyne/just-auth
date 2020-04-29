@@ -28,15 +28,15 @@
 
 (defn new-entry!
   [password-recovery-store email recovery-link]
-  (storage/store! password-recovery-store :email {:email email
-                                                :created-at (java.util.Date.)
-                                                :recovery-link recovery-link}))
+  (storage/store! password-recovery-store {:email email
+                                           :created-at (java.util.Date.)
+                                           :recovery-link recovery-link}))
 
 (defn fetch-by-password-recovery-link [password-recovery-store recovery-link]
-  (first (storage/query password-recovery-store {:recovery-link recovery-link})))
+  (first (storage/query password-recovery-store {:recovery-link recovery-link} {})))
 
 (defn fetch [password-recovery-store email]
-  (some-> (storage/fetch password-recovery-store email)))
+  (storage/query password-recovery-store {:email email} {}))
 
 (defn remove! [password-recovery-store email]
   (storage/delete! password-recovery-store email))

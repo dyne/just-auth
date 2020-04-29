@@ -33,7 +33,7 @@
             [schema.core :as s]
             [taoensso.timbre :as log]
             [failjure.core :as f]
-            [clj-storage.test.db.test-db :as test-db]))
+            [clj-storage.test.db.mongo.test-db :as test-db]))
 
 (def emails (atom []))
 (def user-email "user@mail.com")

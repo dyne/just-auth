@@ -3,7 +3,7 @@
 ;; part of Decentralized Citizen Engagement Technologies (D-CENT)
 ;; R&D funded by the European Commission (FP7/CAPS 610349)
 
-;; Copyright (C) 2017-2018 Dyne.org foundation
+;; Copyright (C) 2017-2020 Dyne.org foundation
 
 ;; Sourcecode designed, written and maintained by
 ;; Aspasia Beneti  <aspra@dyne.org>

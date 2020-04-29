@@ -1,4 +1,4 @@
-(defproject org.clojars.dyne/just-auth "0.7.0-SNAPSHOT"
+(defproject org.clojars.dyne/just-auth "0.7.0"
   :description "Simple two factor authentication library"
   :url "https://github.com/PIENews/just-auth"
 
@@ -7,7 +7,7 @@
             :year 2017
             :key "gpl-3.0"}
 
-  :dependencies [[org.clojure/clojure "1.8.0"]
+  :dependencies [[org.clojure/clojure "1.10.1"]
 
                  ;; logs
                  [com.taoensso/timbre "4.10.0"]
@@ -19,7 +19,7 @@
                  [org.clojars.dyne/fxc "0.6.0"]
 
                  ;; storage lib
-                 [org.clojars.dyne/clj-storage "0.10.0"]
+                 [org.clojars.dyne/clj-storage "1.0.0"]
 
                  ;; config etc.
                  [org.clojars.dyne/auxiliary "0.4.0"]

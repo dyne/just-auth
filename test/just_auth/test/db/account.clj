@@ -26,7 +26,7 @@
             [just-auth.db 
              [account :as account]]
             [clj-storage.db.mongo :as mongo]
-            [clj-storage.test.db.test-db :as test-db]
+            [clj-storage.test.db.mongo.test-db :as test-db]
             [taoensso.timbre :as log]
             [buddy.hashers :as hashers]))
 
@@ -49,7 +49,7 @@
                                                                     hashers/derive)]
                              
                              (fact "An empty flag vector is created"
-                                   (dissoc (account/fetch account-store email) :password) =>
+                                   (dissoc (account/fetch account-store email) :password :created-at) =>
                                    {:first-name first-name
                                     :last-name last-name
                                     :email email
@@ -59,7 +59,8 @@
                                    (:flags user-account) => [])
 
                              (fact "Can add a flag"
-                                   (:flags (account/add-flag! account-store email :admin))  => [:admin]
+                                   (account/add-flag! account-store email :admin)
+                                   (:flags (account/fetch account-store email))  => [:admin]
 
                                    ;; This could be a bug - have posted a question https://stackoverflow.com/questions/45677891/keyword-item-in-moger-vector-is-converted-to-string
                                    ;; UPDATE: manually converted to a keyword
@@ -69,4 +70,5 @@
                                              (first))  => flag))
 
                              (fact "Can remove a flag"
-                                   (:flags (account/remove-flag! account-store email "admin"))  => []))))
+                                   (account/remove-flag! account-store email "admin")
+                                   (:flags (account/fetch account-store email)) => []))))

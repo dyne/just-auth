@@ -3,7 +3,7 @@
 ;; part of Decentralized Citizen Engagement Technologies (D-CENT)
 ;; R&D funded by the European Commission (FP7/CAPS 610349)
 
-;; Copyright (C) 2017-2018 Dyne.org foundation
+;; Copyright (C) 2017-2020 Dyne.org foundation
 
 ;; Sourcecode designed, written and maintained by
 ;; Aspasia Beneti  <aspra@dyne.org>
@@ -22,7 +22,9 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (ns just-auth.db.account
-  (:require [clj-storage.core :as storage]))
+  (:require [clj-storage.core :as storage]
+            [monger.operators :refer [$addToSet $pull $set]]
+            [taoensso.timbre :as log]))
 
 ;; TODO shcema
 (defn- generate-hash [password hash-fn]
@@ -32,23 +34,23 @@
   [account-store
    {:keys [name email password flags other-names activated] :as account-map}
    hash-fn]
-  (storage/store! account-store :email (-> account-map
-                                         (assoc :activated (or activated false))
-                                         (assoc :flags (or flags []))
-                                         (update :password #(generate-hash % hash-fn)))))
+  (storage/store! account-store (-> account-map
+                                    (assoc :activated (or activated false))
+                                    (assoc :flags (or flags []))
+                                    (update :password #(generate-hash % hash-fn)))))
 
 (defn activate! [account-store email]
-  (storage/update! account-store email #(assoc % :activated true)))
+  (storage/update! account-store {:email email} {$set {:activated true}}))
 
 (defn fetch [account-store email]
-  (some-> (storage/fetch account-store email)
+  (some-> (first (storage/query account-store {:email email} {}))
           (update :flags (fn [flags] (map #(keyword %) flags)))))
 
 (defn fetch-by-activation-link [account-store activation-link]
-  (first (storage/query account-store {:activation-link activation-link})))
+  (first (storage/query account-store {:activation-link activation-link} {})))
 
 (defn update-activation-link! [account-store email activation-link]
-  (storage/update! account-store email #(assoc % :activation-link activation-link)))
+  (storage/update! account-store {:email email} {$set {:activation-link activation-link}}))
 
 (defn delete! [account-store email]
   (storage/delete! account-store email))
@@ -59,13 +61,13 @@
    (:password (fetch account-store email))))
 
 (defn update-password! [account-store email password hash-fn]
-  (storage/update! account-store email #(assoc % :password (generate-hash password hash-fn))))
+  (storage/update! account-store {:email email} {$set {:password (generate-hash password hash-fn)}}))
 
 (defn add-flag! [account-store email flag]
-  (storage/update! account-store email (fn [account] (update account :flags #(conj % flag)))))
+  (storage/update! account-store {:email email} {$addToSet {:flags flag}}))
 
 (defn remove-flag! [account-store email flag]
-  (storage/update! account-store email (fn [account] (update account :flags #(remove #{flag} %)))))
+  (storage/update! account-store {:email email} {$pull {:flags flag}}))
 
 (defn list-accounts [account-store params]
-  (storage/query account-store params))
+  (storage/query account-store params {}))

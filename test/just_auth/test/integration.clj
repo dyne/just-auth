@@ -25,7 +25,7 @@
   (:require [midje.sweet :refer :all]
             [just-auth
              [core :as auth-lib]]
-            [clj-storage.test.db.test-db :as test-db]
+            [clj-storage.test.db.mongo.test-db :as test-db]
             [just-auth.db
              [account :as account]
              [just-auth :as auth-db]]
