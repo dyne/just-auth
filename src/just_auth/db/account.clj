@@ -32,12 +32,12 @@
 
 (defn new-account!
   [account-store
-   {:keys [name email password flags other-names activated] :as account-map}
+   {:keys [name email password flags othernames activated] :as account-map}
    hash-fn]
-  (storage/store! account-store (-> account-map
-                                    (assoc :activated (or activated false))
-                                    (assoc :flags (or flags ""))
-                                    (update :password #(generate-hash % hash-fn)))))
+  (storage/store! account-store (log/spy (-> account-map
+                                             (assoc :activated (or activated false))
+                                             (assoc :flags (or flags ""))
+                                             (update :password #(generate-hash % hash-fn))))))
 
 (defn activate! [account-store email]
   (storage/update! account-store {:account/email email} {:account/activated true}))
@@ -50,10 +50,10 @@
                                      (mapv #(keyword %) (str/split flags #" ")))))))
 
 (defn fetch-by-activation-link [account-store activation-link]
-  (first (storage/query account-store {:account/activation-link activation-link} {})))
+  (first (storage/query account-store {:account/activationlink activation-link} {})))
 
 (defn update-activation-link! [account-store email activation-link]
-  (storage/update! account-store {:account/email email} {:account/activation-link activation-link}))
+  (storage/update! account-store {:account/email email} {:account/activationlink activation-link}))
 
 (defn delete! [account-store email]
   (storage/delete! account-store email))

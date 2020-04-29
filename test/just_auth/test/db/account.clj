@@ -54,7 +54,9 @@
                                                                                                                                         :account/email "user@mail.com"
                                                                                                                                         :account/flags []
                                                                                                                                         :account/name "a-user user-surname"
-                                                                                                                                        :account/othernames nil}
+                                                                                                                                        :account/othernames nil
+                                                                                                                                        :account/activationlink nil
+                                                                                                                                         :account/activationuri nil}
                                      
                                      (:account/flags (account/fetch account-store email)) => [])
 

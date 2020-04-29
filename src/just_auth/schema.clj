@@ -38,14 +38,14 @@
 
 (def EmailSignUp
   {:name s/Str
-   :other-names [s/Str]
+   :othernames [s/Str]
    :email s/Str ;;TODO email reg exp?
    :password s/Str
-   :activation-uri s/Str ;; TODO URI
+   :activationuri s/Str ;; TODO URI
    })
 
 (def ThrottlingConfig
-  {:criteria #{(s/maybe (s/enum :email :ip-address))} 
+  {:criteria #{(s/maybe (s/enum :email :ipaddress))} 
    :type (s/enum :block :delay)
    :time-window-secs s/Num
    :threshold s/Num})

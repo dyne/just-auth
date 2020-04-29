@@ -36,7 +36,9 @@
                                  "othernames VARCHAR(255)"
                                  "flags VARCHAR(255) NOT NULL"
                                  "activated BOOLEAN DEFAULT 0"
-                                 "createdate TEXT NOT NULL"]
+                                 "createdate TEXT NOT NULL"
+                                 "activationuri TEXT"
+                                 "activationlink TEXT"]
                       "passwordrecovery" ["ID INTEGER PRIMARY KEY AUTOINCREMENT"
                                           "email VARCHAR(32) UNIQUE"
                                           "createdate TEXT NOT NULL"
